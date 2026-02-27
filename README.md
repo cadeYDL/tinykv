@@ -1,83 +1,83 @@
-# The TinyKV Course
+# TinyKV 课程
 
-The TinyKV course builds a key-value storage system with the Raft consensus algorithm. It is inspired by [MIT 6.824](https://pdos.csail.mit.edu/6.824/) and [TiKV Project](https://github.com/tikv/tikv).
+TinyKV 课程使用 Raft 共识算法构建一个键值存储系统。它受到 [MIT 6.824](https://pdos.csail.mit.edu/6.824/) 和 [TiKV 项目](https://github.com/tikv/tikv) 的启发。
 
-After completing this course, you will have the knowledge to implement a horizontally scalable, highly available, key-value storage service with distributed transaction support. Also, you will have a better understanding of TiKV architecture and implementation.
+完成本课程后，你将掌握实现一个水平可扩展、高可用、支持分布式事务的键值存储服务的知识。同时，你将对 TiKV 的架构和实现有更好的理解。
 
-## Course Architecture
+## 课程架构
 
-The whole project is a skeleton code for a key-value server and a scheduler server at the beginning - you need to finish the core logic step by step:
+整个项目开始时是一个键值服务器和调度器服务器的骨架代码——你需要逐步完成核心逻辑：
 
-* [Standalone KV](doc/project1-StandaloneKV.md)
-  * Implement a standalone storage engine.
-  * Implement raw key-value service handlers.
+* [单机 KV](doc/project1-StandaloneKV.md)
+  * 实现一个单机存储引擎。
+  * 实现原始键值服务处理器。
 * [Raft KV](doc/project2-RaftKV.md)
-  * Implement the basic Raft algorithm.
-  * Build a fault-tolerant KV server on top of Raft.
-  * Add the support of Raft log garbage collection and snapshot.
+  * 实现基本的 Raft 算法。
+  * 在 Raft 之上构建容错 KV 服务器。
+  * 添加 Raft 日志垃圾回收和快照支持。
 * [Multi-raft KV](doc/project3-MultiRaftKV.md)
-  * Implement membership change and leadership change to Raft algorithm.
-  * Implement conf change and region split on Raft store.
-  * Implement a basic scheduler.
-* [Transaction](doc/project4-Transaction.md)
-  * Implement the multi-version concurrency control layer.
-  * Implement handlers of `KvGet`, `KvPrewrite`, and `KvCommit` requests.
-  * Implement handlers of `KvScan`, `KvCheckTxnStatus`, `KvBatchRollback`, and `KvResolveLock` requests.
+  * 为 Raft 算法实现成员变更和领导权转移。
+  * 在 Raft store 上实现配置变更和 Region 分裂。
+  * 实现一个基本的调度器。
+* [事务](doc/project4-Transaction.md)
+  * 实现多版本并发控制层。
+  * 实现 `KvGet`、`KvPrewrite` 和 `KvCommit` 请求的处理器。
+  * 实现 `KvScan`、`KvCheckTxnStatus`、`KvBatchRollback` 和 `KvResolveLock` 请求的处理器。
 
-## Code Structure
+## 代码结构
 
 ![overview](doc/imgs/overview.png)
 
-Similar to the architecture of TiDB + TiKV + PD that separates the storage and computation, TinyKV only focuses on the storage layer of a distributed database system. If you are also interested in the SQL layer, please see [TinySQL](https://github.com/tidb-incubator/tinysql). Besides that, there is a component called TinyScheduler acting as a center control of the whole TinyKV cluster, which collects information from the heartbeats of TinyKV. After that, the TinyScheduler can generate scheduling tasks and distribute the tasks to the TinyKV instances. All of instances are communicated via RPC.
+类似于 TiDB + TiKV + PD 将存储和计算分离的架构，TinyKV 只关注分布式数据库系统的存储层。如果你对 SQL 层也感兴趣，请参阅 [TinySQL](https://github.com/tidb-incubator/tinysql)。除此之外，还有一个名为 TinyScheduler 的组件作为整个 TinyKV 集群的中心控制，它从 TinyKV 的心跳中收集信息。之后，TinyScheduler 可以生成调度任务并将任务分发给 TinyKV 实例。所有实例之间通过 RPC 进行通信。
 
-The whole project is organized into the following directories:
+整个项目组织为以下目录：
 
-* `kv` contains the implementation of the key-value store.
-* `raft` contains the implementation of the Raft consensus algorithm.
-* `scheduler` contains the implementation of the TinyScheduler, which is responsible for managing TinyKV nodes and generating timestamps.
-* `proto` contains the implementation of all communication between nodes and processes uses Protocol Buffers over gRPC. This package contains the protocol definitions used by TinyKV, and the generated Go code that you can use.
-* `log` contains utility to output log based on level.
+* `kv` 包含键值存储的实现。
+* `raft` 包含 Raft 共识算法的实现。
+* `scheduler` 包含 TinyScheduler 的实现，它负责管理 TinyKV 节点和生成时间戳。
+* `proto` 包含节点和进程之间所有使用 Protocol Buffers over gRPC 的通信实现。这个包包含 TinyKV 使用的协议定义，以及你可以使用的生成的 Go 代码。
+* `log` 包含基于级别输出日志的工具。
 
-## Reading List
+## 推荐阅读列表
 
-We provide a [reading list](doc/reading_list.md) for the knowledge of distributed storage system. Though not all of them are highly related with this course, they can help you construct the knowledge system in this field.
+我们提供了一个关于分布式存储系统知识的[推荐阅读列表](doc/reading_list.md)。虽然并非所有内容都与本课程高度相关，但它们可以帮助你在这个领域构建知识体系。
 
-Also, you're encouraged to read the overview of TiKV's and PD's design to get a general impression on what you will build:
+同时，我们鼓励你阅读 TiKV 和 PD 设计的概述，以对你将要构建的内容有一个总体印象：
 
-* TiKV, the design of data storage ([English](https://en.pingcap.com/blog/tidb-internal-data-storage), [Chinese](https://pingcap.com/zh/blog/tidb-internal-1)).
-* PD, the design of scheduling ([English](https://en.pingcap.com/blog/tidb-internal-scheduling), [Chinese](https://pingcap.com/zh/blog/tidb-internal-3)).
+* TiKV，数据存储的设计（[英文](https://en.pingcap.com/blog/tidb-internal-data-storage)，[中文](https://pingcap.com/zh/blog/tidb-internal-1)）。
+* PD，调度的设计（[英文](https://en.pingcap.com/blog/tidb-internal-scheduling)，[中文](https://pingcap.com/zh/blog/tidb-internal-3)）。
 
-## Build TinyKV from Source
+## 从源码构建 TinyKV
 
-### Prerequisites
+### 前置条件
 
-* `git`: The source code of TinyKV is hosted on GitHub as a git repository. To work with git repository, please [install `git`](https://git-scm.com/downloads).
-* `go`: TinyKV is a Go project. To build TinyKV from source, please [install `go`](https://golang.org/doc/install) with version greater or equal to 1.13.
+* `git`：TinyKV 的源代码托管在 GitHub 上作为 git 仓库。要使用 git 仓库，请[安装 `git`](https://git-scm.com/downloads)。
+* `go`：TinyKV 是一个 Go 项目。要从源码构建 TinyKV，请[安装 `go`](https://golang.org/doc/install)，版本需要大于或等于 1.13。
 
-### Clone
+### 克隆
 
-Clone the source code to your development machine.
+将源代码克隆到你的开发机器。
 
 ```bash
 git clone https://github.com/tidb-incubator/tinykv.git
 ```
 
-### Build
+### 构建
 
-Build TinyKV from the source code.
+从源代码构建 TinyKV。
 
 ```bash
 cd tinykv
 make
 ```
 
-It builds the binary of `tinykv-server` and `tinyscheduler-server` to `bin` dir.
+它将 `tinykv-server` 和 `tinyscheduler-server` 的二进制文件构建到 `bin` 目录。
 
-## Run TinyKV with TinySQL
+## 与 TinySQL 一起运行 TinyKV
 
-1. Get `tinysql-server` follow [its document](https://github.com/tidb-incubator/tinysql#deploy).
-2. Put the binary of `tinyscheduler-server`, `tinykv-server` and `tinysql-server` into a single dir.
-3. Under the binary dir, run the following commands:
+1. 按照[其文档](https://github.com/tidb-incubator/tinysql#deploy)获取 `tinysql-server`。
+2. 将 `tinyscheduler-server`、`tinykv-server` 和 `tinysql-server` 的二进制文件放到同一个目录。
+3. 在二进制文件目录下，运行以下命令：
 
 ```bash
 mkdir -p data
@@ -86,17 +86,17 @@ mkdir -p data
 ./tinysql-server --store=tikv --path="127.0.0.1:2379"
 ```
 
-Now you can connect to the database with an official MySQL client:
+现在你可以用官方 MySQL 客户端连接到数据库：
 
 ```bash
 mysql -u root -h 127.0.0.1 -P 4000
 ```
-## Autograding and certification
 
-Since Jun 2022, we start using [github classroom](https://github.com/talent-plan/tinysql/blob/course/classroom.md) to accept labs and provide autograding timely. The github classroom invitation is https://classroom.github.com/a/cdlNNrFU. The discussion Wechat/Slack group and the certification after you pass the class is provided in the [tinyKV learning class](https://talentplan.edu.pingcap.com/catalog/info/id:263)
+## 自动评分和认证
 
+自 2022 年 6 月起，我们开始使用 [github classroom](https://github.com/talent-plan/tinysql/blob/course/classroom.md) 来接受实验并及时提供自动评分。GitHub classroom 邀请链接是 https://classroom.github.com/a/cdlNNrFU。讨论微信/Slack 群和通过课程后的认证在 [tinyKV 学习课程](https://talentplan.edu.pingcap.com/catalog/info/id:263) 中提供。
 
-Autograding is a workflow which can automatically run test cases and give feedback timely. However there are some limitations in Github classroom, in order to make golang work and run it in our self-hosted machines, **you need to overwrite the workflow generated by Github classroom and commit it**.
+自动评分是一个可以自动运行测试用例并及时反馈的工作流。然而 Github classroom 有一些限制，为了使 golang 工作并在我们的自托管机器上运行，**你需要覆盖 Github classroom 生成的工作流并提交它**。
 
 ```sh
 cp scripts/classroom.yml .github/workflows/classroom.yml
@@ -104,6 +104,6 @@ git add .github
 git commit -m"update github classroom workflow"
 ```
 
-## Contributing
+## 贡献
 
-Any feedback and contribution is greatly appreciated. Please see [issues](https://github.com/tidb-incubator/tinykv/issues) if you want to join in the development.
+任何反馈和贡献都非常感谢。如果你想参与开发，请查看 [issues](https://github.com/tidb-incubator/tinykv/issues)。

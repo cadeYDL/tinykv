@@ -29,9 +29,8 @@ func NotifyReqRegionRemoved(regionId uint64, cb *message.Callback) {
 	cb.Done(resp)
 }
 
-// If we create the peer actively, like bootstrap/split/merge region, we should
-// use this function to create the peer. The region must contain the peer info
-// for this store.
+// 如果我们主动创建 peer，比如 bootstrap/split/merge region，我们应该
+// 使用这个函数来创建 peer。region 必须包含此 store 的 peer 信息。
 func createPeer(storeID uint64, cfg *config.Config, sched chan<- worker.Task,
 	engines *engine_util.Engines, region *metapb.Region) (*peer, error) {
 	metaPeer := util.FindPeer(region, storeID)
@@ -42,12 +41,11 @@ func createPeer(storeID uint64, cfg *config.Config, sched chan<- worker.Task,
 	return NewPeer(storeID, cfg, engines, region, sched, metaPeer)
 }
 
-// The peer can be created from another node with raft membership changes, and we only
-// know the region_id and peer_id when creating this replicated peer, the region info
-// will be retrieved later after applying snapshot.
+// peer 可以通过 raft 成员变更从另一个节点创建，创建这个复制的 peer 时
+// 我们只知道 region_id 和 peer_id，region 信息将在应用快照后获取。
 func replicatePeer(storeID uint64, cfg *config.Config, sched chan<- worker.Task,
 	engines *engine_util.Engines, regionID uint64, metaPeer *metapb.Peer) (*peer, error) {
-	// We will remove tombstone key when apply snapshot
+	// 我们将在应用快照时删除 tombstone 键
 	log.Infof("[region %v] replicates peer with ID %d", regionID, metaPeer.GetId())
 	region := &metapb.Region{
 		Id:          regionID,
@@ -57,57 +55,57 @@ func replicatePeer(storeID uint64, cfg *config.Config, sched chan<- worker.Task,
 }
 
 type proposal struct {
-	// index + term for unique identification
+	// index + term 用于唯一标识
 	index uint64
 	term  uint64
 	cb    *message.Callback
 }
 
 type peer struct {
-	// The ticker of the peer, used to trigger
+	// peer 的定时器，用于触发
 	// * raft tick
-	// * raft log gc
-	// * region heartbeat
-	// * split check
+	// * raft 日志垃圾回收
+	// * region 心跳
+	// * 分裂检查
 	ticker *ticker
-	// Instance of the Raft module
+	// Raft 模块的实例
 	RaftGroup *raft.RawNode
-	// The peer storage for the Raft module
+	// Raft 模块的 peer 存储
 	peerStorage *PeerStorage
 
-	// Record the meta information of the peer
+	// 记录 peer 的元信息
 	Meta     *metapb.Peer
 	regionId uint64
-	// Tag which is useful for printing log
+	// 用于打印日志的标签
 	Tag string
 
-	// Record the callback of the proposals
-	// (Used in 2B)
+	// 记录提议的回调
+	// （在 2B 中使用）
 	proposals []*proposal
 
-	// Index of last scheduled compacted raft log.
-	// (Used in 2C)
+	// 上次调度的压缩 raft 日志的索引
+	// （在 2C 中使用）
 	LastCompactedIdx uint64
 
-	// Cache the peers information from other stores
-	// when sending raft messages to other peers, it's used to get the store id of target peer
-	// (Used in 3B conf change)
+	// 缓存来自其他 store 的 peer 信息
+	// 向其他 peer 发送 raft 消息时，用于获取目标 peer 的 store id
+	// （在 3B 配置变更中使用）
 	peerCache map[uint64]*metapb.Peer
-	// Record the instants of peers being added into the configuration.
-	// Remove them after they are not pending any more.
-	// (Used in 3B conf change)
+	// 记录 peer 被添加到配置中的时刻
+	// 当它们不再处于 pending 状态后移除
+	// （在 3B 配置变更中使用）
 	PeersStartPendingTime map[uint64]time.Time
-	// Mark the peer as stopped, set when peer is destroyed
-	// (Used in 3B conf change)
+	// 标记 peer 已停止，当 peer 被销毁时设置
+	// （在 3B 配置变更中使用）
 	stopped bool
 
-	// An inaccurate difference in region size since last reset.
-	// split checker is triggered when it exceeds the threshold, it makes split checker not scan the data very often
-	// (Used in 3B split)
+	// 自上次重置以来 region 大小的不精确差异
+	// 当它超过阈值时触发分裂检查器，这使得分裂检查器不会频繁扫描数据
+	// （在 3B 分裂中使用）
 	SizeDiffHint uint64
-	// Approximate size of the region.
-	// It's updated everytime the split checker scan the data
-	// (Used in 3B split)
+	// region 的近似大小
+	// 每次分裂检查器扫描数据时更新
+	// （在 3B 分裂中使用）
 	ApproximateSize *uint64
 }
 
@@ -148,7 +146,7 @@ func NewPeer(storeId uint64, cfg *config.Config, engines *engine_util.Engines, r
 		ticker:                newTicker(region.GetId(), cfg),
 	}
 
-	// If this region has only one peer and I am the one, campaign directly.
+	// 如果这个 region 只有一个 peer 且我就是那个 peer，直接开始竞选。
 	if len(region.GetPeers()) == 1 && region.GetPeers()[0].GetStoreId() == storeId {
 		err = p.RaftGroup.Campaign()
 		if err != nil {
@@ -184,7 +182,7 @@ func (p *peer) nextProposalIndex() uint64 {
 	return p.RaftGroup.Raft.RaftLog.LastIndex() + 1
 }
 
-/// Tries to destroy itself. Returns a job (if needed) to do more cleaning tasks.
+/// 尝试销毁自己。如果需要，返回一个任务来执行更多清理工作。
 func (p *peer) MaybeDestroy() bool {
 	if p.stopped {
 		log.Infof("%v is being destroyed, skip", p.Tag)
@@ -193,23 +191,23 @@ func (p *peer) MaybeDestroy() bool {
 	return true
 }
 
-/// Does the real destroy worker.Task which includes:
-/// 1. Set the region to tombstone;
-/// 2. Clear data;
-/// 3. Notify all pending requests.
+/// 执行实际的销毁 worker.Task，包括：
+/// 1. 将 region 设置为 tombstone；
+/// 2. 清除数据；
+/// 3. 通知所有待处理的请求。
 func (p *peer) Destroy(engine *engine_util.Engines, keepData bool) error {
 	start := time.Now()
 	region := p.Region()
 	log.Infof("%v begin to destroy", p.Tag)
 
-	// Set Tombstone state explicitly
+	// 显式设置 Tombstone 状态
 	kvWB := new(engine_util.WriteBatch)
 	raftWB := new(engine_util.WriteBatch)
 	if err := p.peerStorage.clearMeta(kvWB, raftWB); err != nil {
 		return err
 	}
 	meta.WriteRegionState(kvWB, region, rspb.PeerState_Tombstone)
-	// write kv badgerDB first in case of restart happen between two write
+	// 首先写入 kv badgerDB，以防两次写入之间发生重启
 	if err := kvWB.WriteToDB(engine.Kv); err != nil {
 		return err
 	}
@@ -218,8 +216,8 @@ func (p *peer) Destroy(engine *engine_util.Engines, keepData bool) error {
 	}
 
 	if p.peerStorage.isInitialized() && !keepData {
-		// If we meet panic when deleting data and raft log, the dirty data
-		// will be cleared by a newer snapshot applying or restart.
+		// 如果我们在删除数据和 raft 日志时遇到 panic，脏数据
+		// 将通过更新的快照应用或重启来清除。
 		p.peerStorage.ClearData()
 	}
 
@@ -244,10 +242,10 @@ func (p *peer) Region() *metapb.Region {
 	return p.peerStorage.Region()
 }
 
-/// Set the region of a peer.
+/// 设置 peer 的 region。
 ///
-/// This will update the region of the peer, caller must ensure the region
-/// has been preserved in a durable device.
+/// 这将更新 peer 的 region，调用者必须确保 region
+/// 已被保存在持久化设备中。
 func (p *peer) SetRegion(region *metapb.Region) {
 	p.peerStorage.SetRegion(region)
 }
@@ -273,7 +271,7 @@ func (p *peer) Send(trans Transport, msgs []eraftpb.Message) {
 	}
 }
 
-/// Collects all pending peers and update `peers_start_pending_time`.
+/// 收集所有待处理的 peer 并更新 `peers_start_pending_time`。
 func (p *peer) CollectPendingPeers() []*metapb.Peer {
 	pendingPeers := make([]*metapb.Peer, 0, len(p.Region().GetPeers()))
 	truncatedIdx := p.peerStorage.truncatedIndex()
@@ -301,8 +299,8 @@ func (p *peer) clearPeersStartPendingTime() {
 	}
 }
 
-/// Returns `true` if any new peer catches up with the leader in replicating logs.
-/// And updates `PeersStartPendingTime` if needed.
+/// 如果有任何新 peer 在复制日志方面追上了 leader，则返回 `true`。
+/// 如果需要，还会更新 `PeersStartPendingTime`。
 func (p *peer) AnyNewPeerCatchUp(peerId uint64) bool {
 	if len(p.PeersStartPendingTime) == 0 {
 		return false
@@ -327,13 +325,13 @@ func (p *peer) AnyNewPeerCatchUp(peerId uint64) bool {
 }
 
 func (p *peer) MaybeCampaign(parentIsLeader bool) bool {
-	// The peer campaigned when it was created, no need to do it again.
+	// peer 在创建时已经竞选过了，不需要再做。
 	if len(p.Region().GetPeers()) <= 1 || !parentIsLeader {
 		return false
 	}
 
-	// If last peer is the leader of the region before split, it's intuitional for
-	// it to become the leader of new split region.
+	// 如果上一个 peer 在分裂前是 region 的 leader，
+	// 让它成为新分裂 region 的 leader 是很自然的。
 	p.RaftGroup.Campaign()
 	return true
 }
@@ -359,7 +357,7 @@ func (p *peer) HeartbeatScheduler(ch chan<- worker.Task) {
 func (p *peer) sendRaftMessage(msg eraftpb.Message, trans Transport) error {
 	sendMsg := new(rspb.RaftMessage)
 	sendMsg.RegionId = p.regionId
-	// set current epoch
+	// 设置当前 epoch
 	sendMsg.RegionEpoch = &metapb.RegionEpoch{
 		ConfVer: p.Region().RegionEpoch.ConfVer,
 		Version: p.Region().RegionEpoch.Version,
@@ -375,14 +373,12 @@ func (p *peer) sendRaftMessage(msg eraftpb.Message, trans Transport) error {
 	sendMsg.FromPeer = &fromPeer
 	sendMsg.ToPeer = toPeer
 
-	// There could be two cases:
-	// 1. Target peer already exists but has not established communication with leader yet
-	// 2. Target peer is added newly due to member change or region split, but it's not
-	//    created yet
-	// For both cases the region start key and end key are attached in RequestVote and
-	// Heartbeat message for the store of that peer to check whether to create a new peer
-	// when receiving these messages, or just to wait for a pending region split to perform
-	// later.
+	// 可能有两种情况：
+	// 1. 目标 peer 已存在但尚未与 leader 建立通信
+	// 2. 目标 peer 因成员变更或 region 分裂而新添加，但尚未创建
+	// 对于这两种情况，region 的 start key 和 end key 会附加在 RequestVote 和
+	// Heartbeat 消息中，以便该 peer 的 store 在收到这些消息时检查是否需要
+	// 创建新的 peer，或者等待待处理的 region 分裂稍后执行。
 	if p.peerStorage.isInitialized() && util.IsInitialMsg(&msg) {
 		sendMsg.StartKey = append([]byte{}, p.Region().StartKey...)
 		sendMsg.EndKey = append([]byte{}, p.Region().EndKey...)

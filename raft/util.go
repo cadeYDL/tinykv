@@ -40,12 +40,12 @@ func max(a, b uint64) uint64 {
 	return b
 }
 
-// IsEmptyHardState returns true if the given HardState is empty.
+// IsEmptyHardState 如果给定的 HardState 为空则返回 true。
 func IsEmptyHardState(st pb.HardState) bool {
 	return isHardStateEqual(st, pb.HardState{})
 }
 
-// IsEmptySnap returns true if the given Snapshot is empty.
+// IsEmptySnap 如果给定的 Snapshot 为空则返回 true。
 func IsEmptySnap(sp *pb.Snapshot) bool {
 	if sp == nil || sp.Metadata == nil {
 		return true
@@ -80,7 +80,7 @@ func diffu(a, b string) string {
 	buf, err := cmd.CombinedOutput()
 	if err != nil {
 		if _, ok := err.(*exec.ExitError); ok {
-			// do nothing
+			// 不做任何事
 			return string(buf)
 		}
 		panic(err)

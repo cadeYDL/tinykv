@@ -5,8 +5,8 @@ import (
 	"github.com/pingcap-incubator/tinykv/proto/pkg/kvrpcpb"
 )
 
-// Storage represents the internal-facing server part of TinyKV, it handles sending and receiving from other
-// TinyKV nodes. As part of that responsibility, it also reads and writes data to disk (or semi-permanent memory).
+// Storage 表示 TinyKV 面向内部的服务器部分，它处理与其他 TinyKV 节点的发送和接收。
+// 作为该职责的一部分，它还负责将数据读写到磁盘（或半永久内存）。
 type Storage interface {
 	Start() error
 	Stop() error
@@ -15,7 +15,7 @@ type Storage interface {
 }
 
 type StorageReader interface {
-	// When the key doesn't exist, return nil for the value
+	// 当键不存在时，返回 nil 作为值
 	GetCF(cf string, key []byte) ([]byte, error)
 	IterCF(cf string) engine_util.DBIterator
 	Close()

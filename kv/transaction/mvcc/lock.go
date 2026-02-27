@@ -24,7 +24,7 @@ type KlPair struct {
 	Lock *Lock
 }
 
-// Info creates a LockInfo object from a Lock object for key.
+// Info 从 Lock 对象为 key 创建一个 LockInfo 对象。
 func (lock *Lock) Info(key []byte) *kvrpcpb.LockInfo {
 	info := kvrpcpb.LockInfo{}
 	info.Key = key
@@ -42,7 +42,7 @@ func (lock *Lock) ToBytes() []byte {
 	return buf
 }
 
-// ParseLock attempts to parse a byte string into a Lock object.
+// ParseLock 尝试将字节字符串解析为 Lock 对象。
 func ParseLock(input []byte) (*Lock, error) {
 	if len(input) <= 16 {
 		return nil, fmt.Errorf("mvcc: error parsing lock, not enough input, found %d bytes", len(input))
@@ -57,7 +57,7 @@ func ParseLock(input []byte) (*Lock, error) {
 	return &Lock{Primary: primary, Ts: ts, Ttl: ttl, Kind: kind}, nil
 }
 
-// IsLockedFor checks if lock locks key at txnStartTs.
+// IsLockedFor 检查锁是否在 txnStartTs 时锁定了 key。
 func (lock *Lock) IsLockedFor(key []byte, txnStartTs uint64, resp interface{}) bool {
 	if lock == nil {
 		return false
@@ -74,7 +74,7 @@ func (lock *Lock) IsLockedFor(key []byte, txnStartTs uint64, resp interface{}) b
 	return false
 }
 
-// AllLocksForTxn returns all locks for the current transaction.
+// AllLocksForTxn 返回当前事务的所有锁。
 func AllLocksForTxn(txn *MvccTxn) ([]KlPair, error) {
 	var result []KlPair
 	iter := txn.Reader.IterCF(engine_util.CfLock)

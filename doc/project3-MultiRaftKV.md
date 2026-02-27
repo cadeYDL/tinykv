@@ -1,86 +1,86 @@
-# Project3 MultiRaftKV
+# 项目3 多Raft KV
 
-In project2, you have built a high available kv server based on Raft, good work! But not enough, such kv server is backed by a single raft group which is not unlimited scalable, and every write request will wait until committed and then write to badger one by one, which is a key requirement to ensure consistency, but also kill any concurrency.
+在项目2中，你已经构建了一个基于 Raft 的高可用键值服务器，干得好！但还不够，这样的键值服务器由单个 Raft 组支持，不能无限扩展，而且每个写请求都会等待提交后再逐个写入 badger，这是确保一致性的关键要求，但也扼杀了任何并发性。
 
 ![multiraft](imgs/multiraft.png)
 
-In this project you will implement a multi raft-based kv server with balance scheduler, which consist of multiple raft groups, each raft group is responsible for a single key range which is named region here, the layout will be looked like the above diagram. Requests to a single region are handled just like before, yet multiple regions can handle requests concurrently which improves performance but also bring some new challenges like balancing the request to each region, etc.
+在本项目中，你将实现一个带有均衡调度器的多 Raft 键值服务器，它由多个 Raft 组组成，每个 Raft 组负责一个单独的键范围，这里称为 Region，布局如上图所示。对单个 Region 的请求像以前一样处理，但多个 Region 可以并发处理请求，这提高了性能，但也带来了一些新挑战，如将请求均衡到每个 Region 等。
 
-This project has 3 part, including:
+本项目有3个部分：
 
-1. Implement membership change and leadership change to Raft algorithm
-2. Implement conf change and region split on raftstore
-3. Introduce scheduler
+1. 为 Raft 算法实现成员变更和领导权转移
+2. 在 raftstore 上实现配置变更和 Region 分裂
+3. 引入调度器
 
 ## Part A
 
-In this part you will implement membership change and leadership change to the basic raft algorithm, these features are required by the next two parts. Membership change, namely conf change, is used to add or remove peers to the raft group, which can change the quorum of the raft group, so be careful. Leadership change, namely leader transfer, is used to transfer the leadership to another peer, which is very useful for balance.
+在这部分，你将为基本 Raft 算法实现成员变更和领导权转移，这些功能是后面两部分所需的。成员变更，即配置变更，用于向 Raft 组添加或移除对等节点，这可以改变 Raft 组的法定人数，所以要小心。领导权转移，即领导者转移，用于将领导权转移给另一个对等节点，这对于负载均衡非常有用。
 
-### The Code
+### 代码结构
 
-The code you need to modify is all about `raft/raft.go` and `raft/rawnode.go`, also see `proto/proto/eraft.proto` for new messages you need to handle. And both conf change and leader transfer are triggered by the upper application, so you may want to start at `raft/rawnode.go`.
+你需要修改的代码都在 `raft/raft.go` 和 `raft/rawnode.go` 中，另外查看 `proto/proto/eraft.proto` 了解你需要处理的新消息。配置变更和领导者转移都是由上层应用触发的，所以你可能想从 `raft/rawnode.go` 开始。
 
-### Implement leader transfer
+### 实现领导者转移
 
-To implement leader transfer, let’s introduce two new message types: `MsgTransferLeader` and `MsgTimeoutNow`. To transfer leadership you need to first call `raft.Raft.Step` with `MsgTransferLeader` message on the current leader, and to ensure the success of the transfer, the current leader should first check the qualification of the transferee (namely transfer target) like: is the transferee’s log up to date, etc. If the transferee is not qualified, the current leader can choose to abort the transfer or help the transferee, since abort is not helping, let’s choose to help the transferee. If the transferee’s log is not up to date, the current leader should send a `MsgAppend` message to the transferee and stop accepting new proposals in case we end up cycling. So if the transferee is qualified (or after the current leader’s help), the leader should send a `MsgTimeoutNow` message to the transferee immediately, and after receiving a `MsgTimeoutNow` message the transferee should start a new election immediately regardless of its election timeout, with a higher term and up to date log, the transferee has great chance to step down the current leader and become the new leader.
+要实现领导者转移，让我们介绍两种新的消息类型：`MsgTransferLeader` 和 `MsgTimeoutNow`。要转移领导权，你需要首先在当前领导者上用 `MsgTransferLeader` 消息调用 `raft.Raft.Step`，为了确保转移成功，当前领导者应该首先检查被转移者（即转移目标）的资格，如：被转移者的日志是否最新等。如果被转移者不合格，当前领导者可以选择中止转移或帮助被转移者，既然中止没有帮助，让我们选择帮助被转移者。如果被转移者的日志不是最新的，当前领导者应该向被转移者发送 `MsgAppend` 消息，并停止接受新的提议，以防我们最终陷入循环。所以如果被转移者合格（或在当前领导者帮助后），领导者应该立即向被转移者发送 `MsgTimeoutNow` 消息，在收到 `MsgTimeoutNow` 消息后，被转移者应该立即开始新的选举，而不管其选举超时，凭借更高的任期和最新的日志，被转移者有很大机会让当前领导者下台并成为新领导者。
 
-### Implement conf change
+### 实现配置变更
 
-Conf change algorithm you will implement here is not the joint consensus algorithm mentioned in the extended Raft paper that can add and/or remove arbitrary peers at once, instead, it can only add or remove peers one by one, which is more simple and easy to reason about. Moreover, conf change start at calling leader’s `raft.RawNode.ProposeConfChange` which will propose an entry with `pb.Entry.EntryType` set to `EntryConfChange` and `pb.Entry.Data` set to the input `pb.ConfChange`. When entries with type `EntryConfChange` are committed, you must apply it through `RawNode.ApplyConfChange` with the `pb.ConfChange` in the entry, only then you can add or remove peer to this raft node through `raft.Raft.addNode` and `raft.Raft.removeNode` according to the `pb.ConfChange`.
+你将在这里实现的配置变更算法不是扩展 Raft 论文中提到的可以一次添加和/或移除任意对等节点的联合共识算法，相反，它只能一次添加或移除一个对等节点，这更简单且更容易理解。此外，配置变更从调用领导者的 `raft.RawNode.ProposeConfChange` 开始，它将提议一个 `pb.Entry.EntryType` 设置为 `EntryConfChange` 且 `pb.Entry.Data` 设置为输入的 `pb.ConfChange` 的条目。当类型为 `EntryConfChange` 的条目被提交时，你必须使用条目中的 `pb.ConfChange` 通过 `RawNode.ApplyConfChange` 应用它，只有这样你才能根据 `pb.ConfChange` 通过 `raft.Raft.addNode` 和 `raft.Raft.removeNode` 向这个 Raft 节点添加或移除对等节点。
 
-> Hints:
+> 提示：
 >
-> - `MsgTransferLeader` message is local message that not come from network
-> - You set the `Message.from` of the `MsgTransferLeader` message to the transferee (namely transfer target)
-> - To start a new election immediately you can call `Raft.Step` with `MsgHup` message
-> - Call `pb.ConfChange.Marshal` to get bytes represent of `pb.ConfChange` and put it to `pb.Entry.Data`
+> - `MsgTransferLeader` 消息是本地消息，不来自网络
+> - 你将 `MsgTransferLeader` 消息的 `Message.from` 设置为被转移者（即转移目标）
+> - 要立即开始新选举，你可以用 `MsgHup` 消息调用 `Raft.Step`
+> - 调用 `pb.ConfChange.Marshal` 获取 `pb.ConfChange` 的字节表示并将其放入 `pb.Entry.Data`
 
 ## Part B
 
-As the Raft module supported membership change and leadership change now, in this part you need to make TinyKV support these admin commands based on part A. As you can see in `proto/proto/raft_cmdpb.proto`, there are four types of admin commands:
+既然 Raft 模块支持成员变更和领导权变更了，在这部分你需要基于 Part A 让 TinyKV 支持这些 admin 命令。正如你在 `proto/proto/raft_cmdpb.proto` 中看到的，有四种类型的 admin 命令：
 
-- CompactLog (Already implemented in project 2 part C)
+- CompactLog（已在项目2 Part C 中实现）
 - TransferLeader
 - ChangePeer
 - Split
 
-`TransferLeader` and `ChangePeer` are the commands based on the Raft support of leadership change and membership change. These will be used as the basic operator steps for the balance scheduler. `Split` splits one Region into two Regions, that’s the base for multi raft. You will implement them step by step.
+`TransferLeader` 和 `ChangePeer` 是基于 Raft 支持的领导权变更和成员变更的命令。这些将作为均衡调度器的基本操作步骤使用。`Split` 将一个 Region 分成两个 Region，这是多 Raft 的基础。你将逐步实现它们。
 
-### The Code
+### 代码结构
 
-All the changes are based on the implementation of the project2, so the code you need to modify is all about `kv/raftstore/peer_msg_handler.go` and `kv/raftstore/peer.go`.
+所有更改都基于项目2的实现，所以你需要修改的代码都在 `kv/raftstore/peer_msg_handler.go` 和 `kv/raftstore/peer.go` 中。
 
-### Propose transfer leader
+### 提议领导者转移
 
-This step is quite simple. As a raft command, `TransferLeader` will be proposed as a Raft entry. But `TransferLeader` actually is an action with no need to replicate to other peers, so you just need to call the `TransferLeader()` method of `RawNode` instead of `Propose()` for `TransferLeader` command.
+这一步很简单。作为一个 Raft 命令，`TransferLeader` 将作为 Raft 条目提议。但 `TransferLeader` 实际上是一个不需要复制到其他对等节点的操作，所以你只需要为 `TransferLeader` 命令调用 `RawNode` 的 `TransferLeader()` 方法，而不是 `Propose()`。
 
-### Implement conf change in raftstore
+### 在 raftstore 中实现配置变更
 
-The conf change has two different types, `AddNode` and `RemoveNode`. Just as its name implies, it adds a Peer or removes a Peer from the Region. To implement conf change, you should learn the terminology of `RegionEpoch` first. `RegionEpoch` is a part of the meta-information of `metapb.Region`. When a Region adds or removes Peer or splits, the Region’s epoch has changed. RegionEpoch’s `conf_ver` increases during ConfChange while `version` increases during a split. It will be used to guarantee the latest region information under network isolation that two leaders in one Region.
+配置变更有两种不同的类型，`AddNode` 和 `RemoveNode`。顾名思义，它向 Region 添加一个 Peer 或从 Region 移除一个 Peer。要实现配置变更，你应该首先了解 `RegionEpoch` 这个术语。`RegionEpoch` 是 `metapb.Region` 元信息的一部分。当 Region 添加或移除 Peer 或分裂时，Region 的 epoch 已更改。RegionEpoch 的 `conf_ver` 在 ConfChange 期间增加，而 `version` 在分裂期间增加。它将用于在网络隔离下保证最新的 Region 信息，即一个 Region 中有两个领导者的情况。
 
-You need to make raftstore support handling conf change commands. The process would be:
+你需要让 raftstore 支持处理配置变更命令。流程如下：
 
-1. Propose conf change admin command by `ProposeConfChange`
-2. After the log is committed, change the `RegionLocalState`, including `RegionEpoch` and `Peers` in `Region`
-3. Call `ApplyConfChange()` of `raft.RawNode`
+1. 通过 `ProposeConfChange` 提议配置变更 admin 命令
+2. 日志提交后，更改 `RegionLocalState`，包括 `Region` 中的 `RegionEpoch` 和 `Peers`
+3. 调用 `raft.RawNode` 的 `ApplyConfChange()`
 
-> Hints:
+> 提示：
 >
-> - For executing `AddNode`, the newly added Peer will be created by heartbeat from the leader, check `maybeCreatePeer()` of `storeWorker`. At that time, this Peer is uninitialized and any information of its Region is unknown to us, so we use 0 to initialize its `Log Term` and `Index`. The leader then will know this Follower has no data (there exists a Log gap from 0 to 5) and it will directly send a snapshot to this Follower.
-> - For executing `RemoveNode`, you should call the `destroyPeer()` explicitly to stop the Raft module. The destroy logic is provided for you.
-> - Do not forget to update the region state in `storeMeta` of `GlobalContext`
-> - Test code schedules the command of one conf change multiple times until the conf change is applied, so you need to consider how to ignore the duplicate commands of the same conf change.
+> - 对于执行 `AddNode`，新添加的 Peer 将由领导者的心跳创建，查看 `storeWorker` 的 `maybeCreatePeer()`。那时，这个 Peer 是未初始化的，其 Region 的任何信息对我们都是未知的，所以我们使用 0 来初始化其 `Log Term` 和 `Index`。然后领导者会知道这个 Follower 没有数据（存在从 0 到 5 的日志间隙），它将直接向这个 Follower 发送快照。
+> - 对于执行 `RemoveNode`，你应该显式调用 `destroyPeer()` 来停止 Raft 模块。销毁逻辑已为你提供。
+> - 不要忘记更新 `GlobalContext` 的 `storeMeta` 中的 Region 状态
+> - 测试代码多次调度同一个配置变更的命令直到配置变更被应用，所以你需要考虑如何忽略同一配置变更的重复命令。
 
-### Implement split region in raftstore
+### 在 raftstore 中实现 Region 分裂
 
 ![raft_group](imgs/keyspace.png)
 
-To support multi-raft, the system performs data sharding and makes each Raft group store just a portion of data. Hash and Range are commonly used for data sharding. TinyKV uses Range and the main reason is that Range can better aggregate keys with the same prefix, which is convenient for operations like scan. Besides, Range outperforms in split than Hash. Usually, it only involves metadata modification and there is no need to move data around.
+为了支持多 Raft，系统执行数据分片，使每个 Raft 组只存储一部分数据。Hash 和 Range 常用于数据分片。TinyKV 使用 Range，主要原因是 Range 可以更好地聚合具有相同前缀的键，这对于 scan 等操作很方便。此外，在分裂方面 Range 优于 Hash。通常，它只涉及元数据修改，不需要移动数据。
 
 ``` protobuf
 message Region {
  uint64 id = 1;
- // Region key range [start_key, end_key).
+ // Region 键范围 [start_key, end_key)。
  bytes start_key = 2;
  bytes end_key = 3;
  RegionEpoch region_epoch = 4;
@@ -88,100 +88,97 @@ message Region {
 }
 ```
 
-Let’s take a relook at Region definition, it includes two fields `start_key` and `end_key` to indicate the range of data which the Region is responsible for. So split is the key step to support multi-raft. In the beginning, there is only one Region with range [“”, “”). You can regard the key space as a loop, so [“”, “”) stands for the whole space. With the data written, the split checker will checks the region size every `cfg.SplitRegionCheckTickInterval`, and generates a split key if possible to cut the Region into two parts, you can check the logic in
-`kv/raftstore/runner/split_check.go`. The split key will be wrapped as a `MsgSplitRegion` handled by `onPrepareSplitRegion()`.
+让我们再看一下 Region 的定义，它包括两个字段 `start_key` 和 `end_key` 来指示 Region 负责的数据范围。所以分裂是支持多 Raft 的关键步骤。在开始时，只有一个 Region 的范围是 ["", "")。你可以将键空间视为一个循环，所以 ["", "") 代表整个空间。随着数据写入，分裂检查器会每隔 `cfg.SplitRegionCheckTickInterval` 检查 Region 大小，如果可能的话生成一个分裂键将 Region 切成两部分，你可以在 `kv/raftstore/runner/split_check.go` 中查看逻辑。分裂键将被包装为 `MsgSplitRegion` 并由 `onPrepareSplitRegion()` 处理。
 
-To make sure the ids of the newly created Region and Peers are unique, the ids are allocated by the scheduler. It’s also provided, so you don’t have to implement it.
-`onPrepareSplitRegion()` actually schedules a task for the pd worker to ask the scheduler for the ids. And make a split admin command after receiving the response from scheduler, see `onAskSplit()` in `kv/raftstore/runner/scheduler_task.go`.
+为了确保新创建的 Region 和 Peer 的 id 是唯一的，id 由调度器分配。这也已提供，所以你不需要实现它。`onPrepareSplitRegion()` 实际上为 pd worker 调度一个任务来向调度器请求 id。然后在收到调度器的响应后生成一个分裂 admin 命令，见 `kv/raftstore/runner/scheduler_task.go` 中的 `onAskSplit()`。
 
-So your task is to implement the process of handling split admin command, just like conf change does. The provided framework supports multiple raft, see `kv/raftstore/router.go`. When a Region splits into two Regions, one of the Regions will inherit the metadata before splitting and just modify its Range and RegionEpoch while the other will create relevant meta information.
+所以你的任务是实现处理分裂 admin 命令的过程，就像配置变更一样。提供的框架支持多 Raft，见 `kv/raftstore/router.go`。当一个 Region 分裂成两个 Region 时，其中一个 Region 将继承分裂前的元数据，只修改其 Range 和 RegionEpoch，而另一个将创建相关的元信息。
 
-> Hints:
+> 提示：
 >
-> - The corresponding Peer of this newly-created Region should be created by
-`createPeer()` and registered to the router.regions. And the region’s info should be inserted into `regionRanges` in ctx.StoreMeta.
-> - For the case region split with network isolation, the snapshot to be applied may have overlap with the existing region’s range. The check logic is in `checkSnapshot()` in `kv/raftstore/peer_msg_handler.go`. Please keep it in mind when implementing and take care of that case.
-> - Use `engine_util.ExceedEndKey()` to compare with region’s end key. Because when the end key equals “”, any key will equal or greater than “”. 
-> - There are more errors need to be considered: `ErrRegionNotFound`, `ErrKeyNotInRegion`, `ErrEpochNotMatch`.
+> - 这个新创建的 Region 对应的 Peer 应该由 `createPeer()` 创建并注册到 router.regions。Region 的信息应该插入到 ctx.StoreMeta 的 `regionRanges` 中。
+> - 对于网络隔离下的 Region 分裂情况，要应用的快照可能与现有 Region 的范围重叠。检查逻辑在 `kv/raftstore/peer_msg_handler.go` 的 `checkSnapshot()` 中。实现时请记住这一点并注意那种情况。
+> - 使用 `engine_util.ExceedEndKey()` 与 Region 的 end key 进行比较。因为当 end key 等于 "" 时，任何键都会等于或大于 ""。
+> - 还有更多错误需要考虑：`ErrRegionNotFound`、`ErrKeyNotInRegion`、`ErrEpochNotMatch`。
 
 ## Part C
 
-As we have instructed above, all data in our kv store is split into several regions, and every region contains multiple replicas. A problem emerged: where should we place every replica? and how can we find the best place for a replica? Who sends former AddPeer and RemovePeer commands? The Scheduler takes on this responsibility.
+正如我们上面所述，我们 kv 存储中的所有数据都被分成若干个 Region，每个 Region 包含多个副本。一个问题出现了：我们应该把每个副本放在哪里？我们如何为一个副本找到最佳位置？谁发送之前的 AddPeer 和 RemovePeer 命令？调度器承担这个责任。
 
-To make informed decisions, the Scheduler should have some information about the whole cluster. It should know where every region is. It should know how many keys they have. It should know how big they are…  To get related information, the Scheduler requires that every region should send a heartbeat request to the Scheduler periodically. You can find the heartbeat request structure `RegionHeartbeatRequest` in `/proto/proto/schedulerpb.proto`. After receiving a heartbeat, the scheduler will update local region information.
+为了做出明智的决策，调度器应该有一些关于整个集群的信息。它应该知道每个 Region 在哪里。它应该知道它们有多少键。它应该知道它们有多大…… 为了获取相关信息，调度器要求每个 Region 定期向调度器发送心跳请求。你可以在 `/proto/proto/schedulerpb.proto` 中找到心跳请求结构 `RegionHeartbeatRequest`。收到心跳后，调度器将更新本地 Region 信息。
 
-Meanwhile, the Scheduler checks region information periodically to find whether there is an imbalance in our TinyKV cluster. For example, if any store contains too many regions, regions should be moved to other stores from it. These commands will be picked up as the response for corresponding regions’ heartbeat requests.
+同时，调度器定期检查 Region 信息以查找我们 TinyKV 集群中是否存在不平衡。例如，如果任何 Store 包含太多 Region，则应该从它移动 Region 到其他 Store。这些命令将作为相应 Region 心跳请求的响应被获取。
 
-In this part, you will need to implement the above two functions for Scheduler. Follow our guide and framework, and it won’t be too difficult.
+在这部分，你需要为调度器实现上述两个功能。按照我们的指南和框架，这不会太难。
 
-### The Code
+### 代码结构
 
-The code you need to modify is all about `scheduler/server/cluster.go` and `scheduler/server/schedulers/balance_region.go`. As described above, when the Scheduler received a region heartbeat, it will update its local region information first. Then it will check whether there are pending commands for this region. If there is, it will be sent back as the response.
+你需要修改的代码都在 `scheduler/server/cluster.go` 和 `scheduler/server/schedulers/balance_region.go` 中。如上所述，当调度器收到 Region 心跳时，它将首先更新其本地 Region 信息。然后它会检查这个 Region 是否有待处理的命令。如果有，它将作为响应发送回去。
 
-You only need to implement `processRegionHeartbeat` function, in which the Scheduler updates local information; and `Schedule` function for the balance-region scheduler, in which the Scheduler scans stores and determines whether there is an imbalance and which region it should move.
+你只需要实现 `processRegionHeartbeat` 函数，其中调度器更新本地信息；以及 balance-region 调度器的 `Schedule` 函数，其中调度器扫描 Store 并确定是否存在不平衡以及应该移动哪个 Region。
 
-### Collect region heartbeat
+### 收集 Region 心跳
 
-As you can see, the only argument of `processRegionHeartbeat` function is a regionInfo. It contains information about the sender region of this heartbeat. What the Scheduler needs to do is just to update local region records. But should it update these records for every heartbeat?
+如你所见，`processRegionHeartbeat` 函数的唯一参数是一个 regionInfo。它包含关于这个心跳的发送者 Region 的信息。调度器需要做的只是更新本地 Region 记录。但它应该为每个心跳更新这些记录吗？
 
-Definitely not! There are two reasons. One is that updates could be skipped when no changes have been made for this region. The more important one is that the Scheduler cannot trust every heartbeat. Particularly speaking, if the cluster has partitions in a certain section, the information about some nodes might be wrong.
+当然不是！有两个原因。一个是当这个 Region 没有发生变化时可以跳过更新。更重要的是调度器不能信任每个心跳。特别是，如果集群在某个部分有分区，一些节点的信息可能是错误的。
 
-For example, some Regions re-initiate elections and splits after they are split, but another isolated batch of nodes still sends the obsolete information to Scheduler through heartbeats. So for one Region, either of the two nodes might say that it's the leader, which means the Scheduler cannot trust them both.
+例如，一些 Region 在分裂后重新发起选举和分裂，但另一批隔离的节点仍然通过心跳向调度器发送过时的信息。所以对于一个 Region，两个节点中的任一个都可能说它是领导者，这意味着调度器不能同时信任它们两个。
 
-Which one is more credible? The Scheduler should use `conf_ver` and `version` to determine it, namely `RegionEpoch`. The Scheduler should first compare the values of the Region version of two nodes. If the values are the same, the Scheduler compares the values of the configuration change version. The node with a larger configuration change version must have newer information.
+哪一个更可信？调度器应该使用 `conf_ver` 和 `version` 来确定它，即 `RegionEpoch`。调度器应该首先比较两个节点的 Region version 的值。如果值相同，调度器比较配置变更 version 的值。配置变更 version 较大的节点必定有更新的信息。
 
-Simply speaking, you could organize the check routine in the below way:
+简单来说，你可以按以下方式组织检查例程：
 
-1. Check whether there is a region with the same Id in local storage. If there is and at least one of the heartbeats’ `conf_ver` and `version` is less than its, this heartbeat region is stale
+1. 检查本地存储中是否有相同 Id 的 Region。如果有且心跳的 `conf_ver` 和 `version` 至少有一个小于它的，则这个心跳 Region 是过时的
 
-2. If there isn’t, scan all regions that overlap with it. The heartbeats’ `conf_ver` and `version` should be greater or equal than all of them, or the region is stale.
+2. 如果没有，扫描所有与它重叠的 Region。心跳的 `conf_ver` 和 `version` 应该大于或等于所有这些，否则 Region 是过时的。
 
-Then how the Scheduler determines whether it could skip this update? We can list some simple conditions:
+那么调度器如何确定是否可以跳过这次更新？我们可以列出一些简单的条件：
 
-* If the new one’s `version` or `conf_ver` is greater than the original one, it cannot be skipped
+* 如果新的 `version` 或 `conf_ver` 大于原来的，则不能跳过
 
-* If the leader changed,  it cannot be skipped
+* 如果领导者改变了，则不能跳过
 
-* If the new one or original one has pending peer,  it cannot be skipped
+* 如果新的或原来的有 pending peer，则不能跳过
 
-* If the ApproximateSize changed, it cannot be skipped
+* 如果 ApproximateSize 改变了，则不能跳过
 
-* …
+* ……
 
-Don’t worry. You don’t need to find a strict sufficient and necessary condition. Redundant updates won’t affect correctness.
+别担心。你不需要找到严格的充分必要条件。冗余更新不会影响正确性。
 
-If the Scheduler determines to update local storage according to this heartbeat, there are two things it should update: region tree and store status. You could use `RaftCluster.core.PutRegion` to update the region tree and use `RaftCluster.core.UpdateStoreStatus` to update related store’s status (such as leader count, region count, pending peer count… ).
+如果调度器根据这个心跳决定更新本地存储，有两件事它应该更新：Region 树和 Store 状态。你可以使用 `RaftCluster.core.PutRegion` 更新 Region 树，使用 `RaftCluster.core.UpdateStoreStatus` 更新相关 Store 的状态（如领导者数量、Region 数量、pending peer 数量……）。
 
-### Implement region balance scheduler
+### 实现 Region 均衡调度器
 
-There can be many different types of schedulers running in the Scheduler, for example, balance-region scheduler and balance-leader scheduler. This learning material will focus on the balance-region scheduler.
+调度器中可以运行许多不同类型的调度器，例如 balance-region 调度器和 balance-leader 调度器。本学习材料将重点介绍 balance-region 调度器。
 
-Every scheduler should have implemented the Scheduler interface, which you can find in `/scheduler/server/schedule/scheduler.go`. The Scheduler will use the return value of `GetMinInterval` as the default interval to run the `Schedule` method periodically. If it returns null (with several times retry), the Scheduler will use `GetNextInterval` to increase the interval. By defining `GetNextInterval` you can define how the interval increases. If it returns an operator, the Scheduler will dispatch these operators as the response of the next heartbeat of the related region.
+每个调度器应该实现 Scheduler 接口，你可以在 `/scheduler/server/schedule/scheduler.go` 中找到它。调度器将使用 `GetMinInterval` 的返回值作为默认间隔来定期运行 `Schedule` 方法。如果它返回 null（经过多次重试），调度器将使用 `GetNextInterval` 来增加间隔。通过定义 `GetNextInterval` 你可以定义间隔如何增加。如果它返回一个 operator，调度器将把这些 operator 作为相关 Region 下一次心跳的响应分发。
 
-The core part of the Scheduler interface is `Schedule` method. The return value of this method is `Operator`, which contains multiple steps such as `AddPeer` and `RemovePeer`. For example, `MovePeer` may contain `AddPeer`,  `transferLeader` and `RemovePeer` which you have implemented in former part. Take the first RaftGroup in the diagram below as an example. The scheduler tries to move peers from the third store to the fourth. First, it should `AddPeer` for the fourth store. Then it checks whether the third is a leader, and find that no, it isn’t, so there is no need to `transferLeader`. Then it removes the peer in the third store.
+Scheduler 接口的核心部分是 `Schedule` 方法。该方法的返回值是 `Operator`，它包含多个步骤，如 `AddPeer` 和 `RemovePeer`。例如，`MovePeer` 可能包含 `AddPeer`、`transferLeader` 和 `RemovePeer`，这些你在前面部分已经实现了。以下图中的第一个 RaftGroup 为例。调度器尝试将 peer 从第三个 Store 移动到第四个。首先，它应该为第四个 Store `AddPeer`。然后它检查第三个是否是领导者，发现不是，所以不需要 `transferLeader`。然后它移除第三个 Store 中的 peer。
 
-You can use the `CreateMovePeerOperator` function in `scheduler/server/schedule/operator` package to create a `MovePeer` operator.
+你可以使用 `scheduler/server/schedule/operator` 包中的 `CreateMovePeerOperator` 函数来创建 `MovePeer` operator。
 
 ![balance](imgs/balance1.png)
 
 ![balance](imgs/balance2.png)
 
-In this part, the only function you need to implement is the `Schedule` method in `scheduler/server/schedulers/balance_region.go`. This scheduler avoids too many regions in one store. First, the Scheduler will select all suitable stores. Then sort them according to their region size. Then the Scheduler tries to find regions to move from the store with the biggest region size.
+在这部分，你唯一需要实现的函数是 `scheduler/server/schedulers/balance_region.go` 中的 `Schedule` 方法。这个调度器避免一个 Store 中有太多 Region。首先，调度器将选择所有合适的 Store。然后按它们的 Region 大小排序。然后调度器尝试从 Region 大小最大的 Store 中找到要移动的 Region。
 
-The scheduler will try to find the region most suitable for moving in the store. First, it will try to select a pending region because pending may mean the disk is overloaded. If there isn’t a pending region, it will try to find a follower region. If it still cannot pick out one region, it will try to pick leader regions. Finally, it will select out the region to move, or the Scheduler will try the next store which has a smaller region size until all stores will have been tried.
+调度器将尝试在 Store 中找到最适合移动的 Region。首先，它将尝试选择一个 pending Region，因为 pending 可能意味着磁盘过载。如果没有 pending Region，它将尝试找一个 follower Region。如果仍然选不出一个 Region，它将尝试选 leader Region。最后，它将选出要移动的 Region，或者调度器将尝试下一个 Region 大小较小的 Store，直到所有 Store 都被尝试过。
 
-After you pick up one region to move, the Scheduler will select a store as the target. Actually, the Scheduler will select the store with the smallest region size. Then the Scheduler will judge whether this movement is valuable, by checking the difference between region sizes of the original store and the target store. If the difference is big enough, the Scheduler should allocate a new peer on the target store and create a move peer operator.
+选出一个要移动的 Region 后，调度器将选择一个 Store 作为目标。实际上，调度器将选择 Region 大小最小的 Store。然后调度器将通过检查原 Store 和目标 Store 之间 Region 大小的差异来判断这次移动是否有价值。如果差异足够大，调度器应该在目标 Store 上分配一个新的 peer 并创建一个 move peer operator。
 
-As you might have noticed, the routine above is just a rough process. A lot of problems are left:
+你可能已经注意到，上面的例程只是一个粗略的过程。还有很多问题：
 
-* Which stores are suitable to move?
+* 哪些 Store 适合移动？
 
-In short, a suitable store should be up and the down time cannot be longer than `MaxStoreDownTime` of the cluster, which you can get through `cluster.GetMaxStoreDownTime()`.
+简而言之，一个合适的 Store 应该是 up 状态且 down 时间不能超过集群的 `MaxStoreDownTime`，你可以通过 `cluster.GetMaxStoreDownTime()` 获取。
 
-* How to select regions?
+* 如何选择 Region？
 
-The Scheduler framework provides three methods to get regions. `GetPendingRegionsWithLock`, `GetFollowersWithLock` and `GetLeadersWithLock`. The Scheduler can get related regions from them. And then you can select a random region.
+调度器框架提供了三种方法来获取 Region。`GetPendingRegionsWithLock`、`GetFollowersWithLock` 和 `GetLeadersWithLock`。调度器可以从它们获取相关的 Region。然后你可以选择一个随机的 Region。
 
-* How to judge whether this operation is valuable?
+* 如何判断这个操作是否有价值？
 
-If the difference between the original and target stores’ region sizes is too small, after we move the region from the original store to the target store, the Scheduler may want to move back again next time. So we have to make sure that the difference has to be bigger than two times the approximate size of the region, which ensures that after moving, the target store’s region size is still smaller than the original store.
+如果原 Store 和目标 Store 的 Region 大小差异太小，在我们将 Region 从原 Store 移动到目标 Store 后，调度器可能想在下次再移回来。所以我们必须确保差异必须大于 Region 近似大小的两倍，这确保移动后目标 Store 的 Region 大小仍然小于原 Store。

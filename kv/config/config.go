@@ -5,6 +5,7 @@ import (
 	"os"
 	"time"
 
+	"github.com/Connor1996/badger"
 	"github.com/pingcap-incubator/tinykv/log"
 )
 
@@ -54,6 +55,16 @@ func (c *Config) Validate() error {
 	}
 
 	return nil
+}
+
+func (c *Config) ToBadgerOptions() badger.Options {
+	opts := badger.DefaultOptions
+	if c == nil {
+		return opts
+	}
+	opts.Dir = c.DBPath
+	opts.ValueDir = c.DBPath
+	return opts
 }
 
 const (

@@ -7,9 +7,9 @@ import (
 	"github.com/pingcap-incubator/tinykv/proto/pkg/kvrpcpb"
 )
 
-// Write is a representation of a committed write to backing storage.
-// A serialized version is stored in the "write" CF of our engine when a write is committed. That allows MvccTxn to find
-// the status of a key at a given timestamp.
+// Write 是对后端存储的已提交写操作的表示。
+// 当写操作被提交时，序列化版本存储在我们引擎的 "write" CF 中。这使得 MvccTxn 能够
+// 找到给定时间戳处 key 的状态。
 type Write struct {
 	StartTS uint64
 	Kind    WriteKind

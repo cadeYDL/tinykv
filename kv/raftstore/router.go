@@ -11,13 +11,13 @@ import (
 	"github.com/pingcap/errors"
 )
 
-// peerState contains the peer states that needs to run raft command and apply command.
+// peerState 包含需要运行 raft 命令和 apply 命令的 peer 状态。
 type peerState struct {
 	closed uint32
 	peer   *peer
 }
 
-// router routes a message to a peer.
+// router 将消息路由到 peer。
 type router struct {
 	peers       sync.Map // regionID -> peerState
 	peerSender  chan message.Msg

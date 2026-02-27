@@ -16,84 +16,81 @@ package raft
 
 import pb "github.com/pingcap-incubator/tinykv/proto/pkg/eraftpb"
 
-// RaftLog manage the log entries, its struct look like:
+// RaftLog 管理日志条目，其结构如下：
 //
 //  snapshot/first.....applied....committed....stabled.....last
 //  --------|------------------------------------------------|
-//                            log entries
+//                            日志条目
 //
-// for simplify the RaftLog implement should manage all log entries
-// that not truncated
+// 为简化起见，RaftLog 实现应该管理所有未截断的日志条目
 type RaftLog struct {
-	// storage contains all stable entries since the last snapshot.
+	// storage 包含自上次快照以来的所有稳定条目。
 	storage Storage
 
-	// committed is the highest log position that is known to be in
-	// stable storage on a quorum of nodes.
+	// committed 是已知在法定人数节点的稳定存储中的最高日志位置。
 	committed uint64
 
-	// applied is the highest log position that the application has
-	// been instructed to apply to its state machine.
-	// Invariant: applied <= committed
+	// applied 是应用程序已被指示应用到其状态机的最高日志位置。
+	// 不变量：applied <= committed
 	applied uint64
 
-	// log entries with index <= stabled are persisted to storage.
-	// It is used to record the logs that are not persisted by storage yet.
-	// Everytime handling `Ready`, the unstabled logs will be included.
+	// 索引 <= stabled 的日志条目已持久化到存储。
+	// 它用于记录尚未被 storage 持久化的日志。
+	// 每次处理 `Ready` 时，都会包含未稳定的日志。
 	stabled uint64
 
-	// all entries that have not yet compact.
+	// 所有尚未压缩的条目。
 	entries []pb.Entry
 
-	// the incoming unstable snapshot, if any.
-	// (Used in 2C)
+	// 传入的不稳定快照（如果有）。
+	// （用于 2C）
 	pendingSnapshot *pb.Snapshot
 
-	// Your Data Here (2A).
+	// 你的数据在这里 (2A)。
 }
 
-// newLog returns log using the given storage. It recovers the log
-// to the state that it just commits and applies the latest snapshot.
+// newLog 使用给定的存储返回日志。它将日志恢复到
+// 刚刚提交并应用最新快照的状态。
 func newLog(storage Storage) *RaftLog {
-	// Your Code Here (2A).
+	// 你的代码在这里 (2A)。
 	return nil
 }
 
-// We need to compact the log entries in some point of time like
-// storage compact stabled log entries prevent the log entries
-// grow unlimitedly in memory
+// 我们需要在某个时间点压缩日志条目，
+// 例如 storage 压缩已稳定的日志条目，
+// 以防止日志条目在内存中无限增长
 func (l *RaftLog) maybeCompact() {
-	// Your Code Here (2C).
+	// 你的代码在这里 (2C)。
 }
 
-// allEntries return all the entries not compacted.
-// note, exclude any dummy entries from the return value.
-// note, this is one of the test stub functions you need to implement.
+// allEntries 返回所有未压缩的条目。
+// 注意，从返回值中排除任何虚拟条目。
+// 注意，这是你需要实现的测试桩函数之一。
 func (l *RaftLog) allEntries() []pb.Entry {
-	// Your Code Here (2A).
+	// 你的代码在这里 (2A)。
 	return nil
 }
 
-// unstableEntries return all the unstable entries
+// unstableEntries 返回所有不稳定的条目
 func (l *RaftLog) unstableEntries() []pb.Entry {
-	// Your Code Here (2A).
+	// 你的代码在这里 (2A)。
 	return nil
 }
 
-// nextEnts returns all the committed but not applied entries
+// nextEnts 返回所有已提交但未应用的条目
 func (l *RaftLog) nextEnts() (ents []pb.Entry) {
-	// Your Code Here (2A).
+	// 你的代码在这里 (2A)。
 	return nil
 }
 
-// LastIndex return the last index of the log entries
+// LastIndex 返回日志条目的最后索引
 func (l *RaftLog) LastIndex() uint64 {
-	// Your Code Here (2A).
+	// 你的代码在这里 (2A)。
 	return 0
 }
 
-// Term return the term of the entry in the given index
+// Term 返回给定索引处条目的任期
 func (l *RaftLog) Term(i uint64) (uint64, error) {
-	// Your Code Here (2A).
+	// 你的代码在这里 (2A)。
 	return 0, nil
 }

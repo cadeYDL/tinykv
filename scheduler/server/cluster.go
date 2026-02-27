@@ -40,13 +40,13 @@ var (
 	defaultChangedRegionsLimit = 10000
 )
 
-// RaftCluster is used for cluster config management.
-// Raft cluster key format:
-// cluster 1 -> /1/raft, value is metapb.Cluster
+// RaftCluster 用于集群配置管理。
+// Raft 集群键格式：
+// cluster 1 -> /1/raft，值是 metapb.Cluster
 // cluster 2 -> /2/raft
-// For cluster 1
-// store 1 -> /1/raft/s/1, value is metapb.Store
-// region 1 -> /1/raft/r/1, value is metapb.Region
+// 对于 cluster 1
+// store 1 -> /1/raft/s/1，值是 metapb.Store
+// region 1 -> /1/raft/r/1，值是 metapb.Region
 type RaftCluster struct {
 	sync.RWMutex
 	ctx context.Context
@@ -73,7 +73,7 @@ type RaftCluster struct {
 	quit chan struct{}
 }
 
-// ClusterStatus saves some state information
+// ClusterStatus 保存一些状态信息
 type ClusterStatus struct {
 	RaftBootstrapTime time.Time `json:"raft_bootstrap_time,omitempty"`
 	IsInitialized     bool      `json:"is_initialized"`
@@ -114,9 +114,8 @@ func (c *RaftCluster) isInitialized() bool {
 		len(region.GetPendingPeers()) == 0
 }
 
-// loadBootstrapTime loads the saved bootstrap time from etcd. It returns zero
-// value of time.Time when there is error or the cluster is not bootstrapped
-// yet.
+// loadBootstrapTime 从 etcd 加载保存的 bootstrap 时间。当发生错误或集群尚未 bootstrap 时，
+// 它返回 time.Time 的零值。
 func (c *RaftCluster) loadBootstrapTime() (time.Time, error) {
 	var t time.Time
 	data, err := c.s.storage.Load(c.s.storage.ClusterStatePath("raft_bootstrap_time"))
@@ -166,7 +165,7 @@ func (c *RaftCluster) start() error {
 	return nil
 }
 
-// Return nil if cluster is not bootstrapped.
+// 如果集群尚未 bootstrap 则返回 nil。
 func (c *RaftCluster) loadClusterInfo() (*RaftCluster, error) {
 	c.meta = &metapb.Cluster{}
 	ok, err := c.storage.LoadMeta(c.meta)
@@ -240,28 +239,28 @@ func (c *RaftCluster) isRunning() bool {
 	return c.running
 }
 
-// GetOperatorController returns the operator controller.
+// GetOperatorController 返回 operator 控制器。
 func (c *RaftCluster) GetOperatorController() *schedule.OperatorController {
 	c.RLock()
 	defer c.RUnlock()
 	return c.coordinator.opController
 }
 
-// GetHeartbeatStreams returns the heartbeat streams.
+// GetHeartbeatStreams 返回心跳流。
 func (c *RaftCluster) GetHeartbeatStreams() *heartbeatStreams {
 	c.RLock()
 	defer c.RUnlock()
 	return c.coordinator.hbStreams
 }
 
-// GetCoordinator returns the coordinator.
+// GetCoordinator 返回协调器。
 func (c *RaftCluster) GetCoordinator() *coordinator {
 	c.RLock()
 	defer c.RUnlock()
 	return c.coordinator
 }
 
-// handleStoreHeartbeat updates the store status.
+// handleStoreHeartbeat 更新 store 状态。
 func (c *RaftCluster) handleStoreHeartbeat(stats *schedulerpb.StoreStats) error {
 	c.Lock()
 	defer c.Unlock()
@@ -276,9 +275,9 @@ func (c *RaftCluster) handleStoreHeartbeat(stats *schedulerpb.StoreStats) error 
 	return nil
 }
 
-// processRegionHeartbeat updates the region information.
+// processRegionHeartbeat 更新 region 信息。
 func (c *RaftCluster) processRegionHeartbeat(region *core.RegionInfo) error {
-	// Your Code Here (3C).
+	// 你的代码在这里 (3C)。
 
 	return nil
 }
@@ -333,7 +332,7 @@ func (c *RaftCluster) putMetaLocked(meta *metapb.Cluster) error {
 	return nil
 }
 
-// GetRegionByKey gets region and leader peer by region key from cluster.
+// GetRegionByKey 通过 region key 从集群获取 region 和 leader peer。
 func (c *RaftCluster) GetRegionByKey(regionKey []byte) (*metapb.Region, *metapb.Peer) {
 	region := c.core.SearchRegion(regionKey)
 	if region == nil {
@@ -342,7 +341,7 @@ func (c *RaftCluster) GetRegionByKey(regionKey []byte) (*metapb.Region, *metapb.
 	return region.GetMeta(), region.GetLeader()
 }
 
-// GetPrevRegionByKey gets previous region and leader peer by the region key from cluster.
+// GetPrevRegionByKey 通过 region key 从集群获取前一个 region 和 leader peer。
 func (c *RaftCluster) GetPrevRegionByKey(regionKey []byte) (*metapb.Region, *metapb.Peer) {
 	region := c.core.SearchPrevRegion(regionKey)
 	if region == nil {
@@ -351,18 +350,18 @@ func (c *RaftCluster) GetPrevRegionByKey(regionKey []byte) (*metapb.Region, *met
 	return region.GetMeta(), region.GetLeader()
 }
 
-// GetRegionInfoByKey gets regionInfo by region key from cluster.
+// GetRegionInfoByKey 通过 region key 从集群获取 regionInfo。
 func (c *RaftCluster) GetRegionInfoByKey(regionKey []byte) *core.RegionInfo {
 	return c.core.SearchRegion(regionKey)
 }
 
-// ScanRegions scans region with start key, until the region contains endKey, or
-// total number greater than limit.
+// ScanRegions 从 start key 开始扫描 region，直到 region 包含 endKey，或
+// 总数大于 limit。
 func (c *RaftCluster) ScanRegions(startKey, endKey []byte, limit int) []*core.RegionInfo {
 	return c.core.ScanRange(startKey, endKey, limit)
 }
 
-// GetRegionByID gets region and leader peer by regionID from cluster.
+// GetRegionByID 通过 regionID 从集群获取 region 和 leader peer。
 func (c *RaftCluster) GetRegionByID(regionID uint64) (*metapb.Region, *metapb.Peer) {
 	region := c.GetRegion(regionID)
 	if region == nil {
@@ -371,72 +370,72 @@ func (c *RaftCluster) GetRegionByID(regionID uint64) (*metapb.Region, *metapb.Pe
 	return region.GetMeta(), region.GetLeader()
 }
 
-// GetRegion searches for a region by ID.
+// GetRegion 通过 ID 搜索 region。
 func (c *RaftCluster) GetRegion(regionID uint64) *core.RegionInfo {
 	return c.core.GetRegion(regionID)
 }
 
-// GetMetaRegions gets regions from cluster.
+// GetMetaRegions 从集群获取 region。
 func (c *RaftCluster) GetMetaRegions() []*metapb.Region {
 	return c.core.GetMetaRegions()
 }
 
-// GetRegions returns all regions' information in detail.
+// GetRegions 返回所有 region 的详细信息。
 func (c *RaftCluster) GetRegions() []*core.RegionInfo {
 	return c.core.GetRegions()
 }
 
-// GetRegionCount returns total count of regions
+// GetRegionCount 返回 region 的总数量
 func (c *RaftCluster) GetRegionCount() int {
 	return c.core.GetRegionCount()
 }
 
-// GetStoreRegions returns all regions' information with a given storeID.
+// GetStoreRegions 返回给定 storeID 的所有 region 信息。
 func (c *RaftCluster) GetStoreRegions(storeID uint64) []*core.RegionInfo {
 	return c.core.GetStoreRegions(storeID)
 }
 
-// RandLeaderRegion returns a random region that has leader on the store.
+// RandLeaderRegion 返回在该 store 上有 leader 的随机 region。
 func (c *RaftCluster) RandLeaderRegion(storeID uint64, opts ...core.RegionOption) *core.RegionInfo {
 	return c.core.RandLeaderRegion(storeID, opts...)
 }
 
-// RandFollowerRegion returns a random region that has a follower on the store.
+// RandFollowerRegion 返回在该 store 上有 follower 的随机 region。
 func (c *RaftCluster) RandFollowerRegion(storeID uint64, opts ...core.RegionOption) *core.RegionInfo {
 	return c.core.RandFollowerRegion(storeID, opts...)
 }
 
-// RandPendingRegion returns a random region that has a pending peer on the store.
+// RandPendingRegion 返回在该 store 上有 pending peer 的随机 region。
 func (c *RaftCluster) RandPendingRegion(storeID uint64, opts ...core.RegionOption) *core.RegionInfo {
 	return c.core.RandPendingRegion(storeID, opts...)
 }
 
-// GetPendingRegionsWithLock return pending regions subtree by storeID
+// GetPendingRegionsWithLock 按 storeID 返回 pending regions 子树
 func (c *RaftCluster) GetPendingRegionsWithLock(storeID uint64, callback func(core.RegionsContainer)) {
 	c.core.GetPendingRegionsWithLock(storeID, callback)
 }
 
-// GetLeadersWithLock return leaders subtree by storeID
+// GetLeadersWithLock 按 storeID 返回 leaders 子树
 func (c *RaftCluster) GetLeadersWithLock(storeID uint64, callback func(core.RegionsContainer)) {
 	c.core.GetLeadersWithLock(storeID, callback)
 }
 
-// GetFollowersWithLock return leaders subtree by storeID
+// GetFollowersWithLock 按 storeID 返回 followers 子树
 func (c *RaftCluster) GetFollowersWithLock(storeID uint64, callback func(core.RegionsContainer)) {
 	c.core.GetFollowersWithLock(storeID, callback)
 }
 
-// GetLeaderStore returns all stores that contains the region's leader peer.
+// GetLeaderStore 返回包含 region 的 leader peer 的所有 store。
 func (c *RaftCluster) GetLeaderStore(region *core.RegionInfo) *core.StoreInfo {
 	return c.core.GetLeaderStore(region)
 }
 
-// GetFollowerStores returns all stores that contains the region's follower peer.
+// GetFollowerStores 返回包含 region 的 follower peer 的所有 store。
 func (c *RaftCluster) GetFollowerStores(region *core.RegionInfo) []*core.StoreInfo {
 	return c.core.GetFollowerStores(region)
 }
 
-// GetRegionStores returns all stores that contains the region's peer.
+// GetRegionStores 返回包含 region 的 peer 的所有 store。
 func (c *RaftCluster) GetRegionStores(region *core.RegionInfo) []*core.StoreInfo {
 	return c.core.GetRegionStores(region)
 }
@@ -445,17 +444,17 @@ func (c *RaftCluster) getStoreCount() int {
 	return c.core.GetStoreCount()
 }
 
-// GetStoreRegionCount returns the number of regions for a given store.
+// GetStoreRegionCount 返回给定 store 的 region 数量。
 func (c *RaftCluster) GetStoreRegionCount(storeID uint64) int {
 	return c.core.GetStoreRegionCount(storeID)
 }
 
-// GetAverageRegionSize returns the average region approximate size.
+// GetAverageRegionSize 返回 region 的平均近似大小。
 func (c *RaftCluster) GetAverageRegionSize() int64 {
 	return c.core.GetAverageRegionSize()
 }
 
-// DropCacheRegion removes a region from the cache.
+// DropCacheRegion 从缓存中移除一个 region。
 func (c *RaftCluster) DropCacheRegion(id uint64) {
 	c.RLock()
 	defer c.RUnlock()
@@ -464,17 +463,17 @@ func (c *RaftCluster) DropCacheRegion(id uint64) {
 	}
 }
 
-// GetMetaStores gets stores from cluster.
+// GetMetaStores 从集群获取 store。
 func (c *RaftCluster) GetMetaStores() []*metapb.Store {
 	return c.core.GetMetaStores()
 }
 
-// GetStores returns all stores in the cluster.
+// GetStores 返回集群中的所有 store。
 func (c *RaftCluster) GetStores() []*core.StoreInfo {
 	return c.core.GetStores()
 }
 
-// GetStore gets store from cluster.
+// GetStore 从集群获取 store。
 func (c *RaftCluster) GetStore(storeID uint64) *core.StoreInfo {
 	return c.core.GetStore(storeID)
 }
@@ -487,9 +486,9 @@ func (c *RaftCluster) putStore(store *metapb.Store) error {
 		return errors.Errorf("invalid put store %v", store)
 	}
 
-	// Store address can not be the same as other stores.
+	// Store 地址不能与其他 store 相同。
 	for _, s := range c.GetStores() {
-		// It's OK to start a new store on the same address if the old store has been removed.
+		// 如果旧 store 已被移除，可以在相同地址启动新 store。
 		if s.IsTombstone() {
 			continue
 		}
@@ -500,10 +499,10 @@ func (c *RaftCluster) putStore(store *metapb.Store) error {
 
 	s := c.GetStore(store.GetId())
 	if s == nil {
-		// Add a new store.
+		// 添加新 store。
 		s = core.NewStoreInfo(store)
 	} else {
-		// Update an existed store.
+		// 更新已存在的 store。
 		s = s.Clone(
 			core.SetStoreAddress(store.Address),
 		)
@@ -511,8 +510,8 @@ func (c *RaftCluster) putStore(store *metapb.Store) error {
 	return c.putStoreLocked(s)
 }
 
-// RemoveStore marks a store as offline in cluster.
-// State transition: Up -> Offline.
+// RemoveStore 将集群中的 store 标记为 offline。
+// 状态转换：Up -> Offline。
 func (c *RaftCluster) RemoveStore(storeID uint64) error {
 	op := errcode.Op("store.remove")
 	c.Lock()
@@ -523,7 +522,7 @@ func (c *RaftCluster) RemoveStore(storeID uint64) error {
 		return op.AddTo(core.NewStoreNotFoundErr(storeID))
 	}
 
-	// Remove an offline store should be OK, nothing to do.
+	// 移除一个 offline store 应该是可以的，无需操作。
 	if store.IsOffline() {
 		return nil
 	}
@@ -539,10 +538,10 @@ func (c *RaftCluster) RemoveStore(storeID uint64) error {
 	return c.putStoreLocked(newStore)
 }
 
-// BuryStore marks a store as tombstone in cluster.
-// State transition:
-// Case 1: Up -> Tombstone (if force is true);
-// Case 2: Offline -> Tombstone.
+// BuryStore 将集群中的 store 标记为 tombstone。
+// 状态转换：
+// 情况 1：Up -> Tombstone（如果 force 为 true）；
+// 情况 2：Offline -> Tombstone。
 func (c *RaftCluster) BuryStore(storeID uint64, force bool) error { // revive:disable-line:flag-parameter
 	c.Lock()
 	defer c.Unlock()
@@ -552,7 +551,7 @@ func (c *RaftCluster) BuryStore(storeID uint64, force bool) error { // revive:di
 		return core.NewStoreNotFoundErr(storeID)
 	}
 
-	// Bury a tombstone store should be OK, nothing to do.
+	// 将一个 tombstone store 再次标记为 tombstone 应该是可以的，无需操作。
 	if store.IsTombstone() {
 		return nil
 	}
@@ -571,22 +570,22 @@ func (c *RaftCluster) BuryStore(storeID uint64, force bool) error { // revive:di
 	return c.putStoreLocked(newStore)
 }
 
-// BlockStore stops balancer from selecting the store.
+// BlockStore 阻止 balancer 选择该 store。
 func (c *RaftCluster) BlockStore(storeID uint64) error {
 	return c.core.BlockStore(storeID)
 }
 
-// UnblockStore allows balancer to select the store.
+// UnblockStore 允许 balancer 选择该 store。
 func (c *RaftCluster) UnblockStore(storeID uint64) {
 	c.core.UnblockStore(storeID)
 }
 
-// AttachAvailableFunc attaches an available function to a specific store.
+// AttachAvailableFunc 将一个可用性函数附加到特定的 store。
 func (c *RaftCluster) AttachAvailableFunc(storeID uint64, f func() bool) {
 	c.core.AttachAvailableFunc(storeID, f)
 }
 
-// SetStoreState sets up a store's state.
+// SetStoreState 设置 store 的状态。
 func (c *RaftCluster) SetStoreState(storeID uint64, state metapb.StoreState) error {
 	c.Lock()
 	defer c.Unlock()
@@ -603,7 +602,7 @@ func (c *RaftCluster) SetStoreState(storeID uint64, state metapb.StoreState) err
 	return c.putStoreLocked(newStore)
 }
 
-// SetStoreWeight sets up a store's leader/region balance weight.
+// SetStoreWeight 设置 store 的 leader/region 平衡权重。
 func (c *RaftCluster) SetStoreWeight(storeID uint64, leaderWeight, regionWeight float64) error {
 	c.Lock()
 	defer c.Unlock()
@@ -640,7 +639,7 @@ func (c *RaftCluster) checkStores() {
 	var upStoreCount int
 	stores := c.GetStores()
 	for _, store := range stores {
-		// the store has already been tombstone
+		// store 已经是 tombstone
 		if store.IsTombstone() {
 			continue
 		}
@@ -651,7 +650,7 @@ func (c *RaftCluster) checkStores() {
 		}
 
 		offlineStore := store.GetMeta()
-		// If the store is empty, it can be buried.
+		// 如果 store 为空，它可以被标记为 tombstone。
 		regionCount := c.core.GetStoreRegionCount(offlineStore.GetId())
 		if regionCount == 0 {
 			if err := c.BuryStore(offlineStore.GetId(), false); err != nil {
@@ -675,14 +674,14 @@ func (c *RaftCluster) checkStores() {
 	}
 }
 
-// RemoveTombStoneRecords removes the tombStone Records.
+// RemoveTombStoneRecords 移除 tombstone 记录。
 func (c *RaftCluster) RemoveTombStoneRecords() error {
 	c.Lock()
 	defer c.Unlock()
 
 	for _, store := range c.GetStores() {
 		if store.IsTombstone() {
-			// the store has already been tombstone
+			// store 已经是 tombstone
 			err := c.deleteStoreLocked(store)
 			if err != nil {
 				log.Error("delete store failed",
@@ -735,7 +734,7 @@ func (c *RaftCluster) allocID() (uint64, error) {
 	return c.id.Alloc()
 }
 
-// AllocPeer allocs a new peer on a store.
+// AllocPeer 在 store 上分配一个新的 peer。
 func (c *RaftCluster) AllocPeer(storeID uint64) (*metapb.Peer, error) {
 	peerID, err := c.allocID()
 	if err != nil {
@@ -749,7 +748,7 @@ func (c *RaftCluster) AllocPeer(storeID uint64) (*metapb.Peer, error) {
 	return peer, nil
 }
 
-// GetConfig gets config from cluster.
+// GetConfig 从集群获取配置。
 func (c *RaftCluster) GetConfig() *metapb.Cluster {
 	c.RLock()
 	defer c.RUnlock()
@@ -765,42 +764,42 @@ func (c *RaftCluster) putConfig(meta *metapb.Cluster) error {
 	return c.putMetaLocked(proto.Clone(meta).(*metapb.Cluster))
 }
 
-// GetOpt returns the scheduling options.
+// GetOpt 返回调度选项。
 func (c *RaftCluster) GetOpt() *config.ScheduleOption {
 	return c.opt
 }
 
-// GetLeaderScheduleLimit returns the limit for leader schedule.
+// GetLeaderScheduleLimit 返回 leader 调度的限制。
 func (c *RaftCluster) GetLeaderScheduleLimit() uint64 {
 	return c.opt.GetLeaderScheduleLimit()
 }
 
-// GetRegionScheduleLimit returns the limit for region schedule.
+// GetRegionScheduleLimit 返回 region 调度的限制。
 func (c *RaftCluster) GetRegionScheduleLimit() uint64 {
 	return c.opt.GetRegionScheduleLimit()
 }
 
-// GetReplicaScheduleLimit returns the limit for replica schedule.
+// GetReplicaScheduleLimit 返回副本调度的限制。
 func (c *RaftCluster) GetReplicaScheduleLimit() uint64 {
 	return c.opt.GetReplicaScheduleLimit()
 }
 
-// GetPatrolRegionInterval returns the interval of patroling region.
+// GetPatrolRegionInterval 返回巡检 region 的间隔。
 func (c *RaftCluster) GetPatrolRegionInterval() time.Duration {
 	return c.opt.GetPatrolRegionInterval()
 }
 
-// GetMaxStoreDownTime returns the max down time of a store.
+// GetMaxStoreDownTime 返回 store 的最大宕机时间。
 func (c *RaftCluster) GetMaxStoreDownTime() time.Duration {
 	return c.opt.GetMaxStoreDownTime()
 }
 
-// GetMaxReplicas returns the number of replicas.
+// GetMaxReplicas 返回副本数量。
 func (c *RaftCluster) GetMaxReplicas() int {
 	return c.opt.GetMaxReplicas()
 }
 
-// isPrepared if the cluster information is collected
+// isPrepared 检查集群信息是否已收集
 func (c *RaftCluster) isPrepared() bool {
 	c.RLock()
 	defer c.RUnlock()
@@ -828,12 +827,12 @@ func newPrepareChecker() *prepareChecker {
 	}
 }
 
-// Before starting up the scheduler, we need to take the proportion of the regions on each store into consideration.
+// 在启动调度器之前，我们需要考虑每个 store 上 region 的比例。
 func (checker *prepareChecker) check(c *RaftCluster) bool {
 	if checker.isPrepared || time.Since(checker.start) > collectTimeout {
 		return true
 	}
-	// The number of active regions should be more than total region of all stores * collectFactor
+	// 活跃 region 数量应该大于所有 store 的 region 总数 * collectFactor
 	if float64(c.core.Length())*collectFactor > float64(checker.sum) {
 		return false
 	}
@@ -842,7 +841,7 @@ func (checker *prepareChecker) check(c *RaftCluster) bool {
 			continue
 		}
 		storeID := store.GetID()
-		// For each store, the number of active regions should be more than total region of the store * collectFactor
+		// 对于每个 store，活跃 region 数量应该大于该 store 的 region 总数 * collectFactor
 		if float64(c.core.GetStoreRegionCount(storeID))*collectFactor > float64(checker.reactiveRegions[storeID]) {
 			return false
 		}

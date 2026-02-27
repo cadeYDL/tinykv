@@ -1,24 +1,24 @@
 package mvcc
 
-// Scanner is used for reading multiple sequential key/value pairs from the storage layer. It is aware of the implementation
-// of the storage layer and returns results suitable for users.
-// Invariant: either the scanner is finished and cannot be used, or it is ready to return a value immediately.
+// Scanner 用于从存储层读取多个连续的 key/value 对。它了解存储层的实现
+// 并返回适合用户的结果。
+// 不变量：要么 scanner 已完成且不能再使用，要么它已准备好立即返回一个值。
 type Scanner struct {
-	// Your Data Here (4C).
+	// 你的数据在这里 (4C)。
 }
 
-// NewScanner creates a new scanner ready to read from the snapshot in txn.
+// NewScanner 创建一个新的 scanner，准备从 txn 中的快照读取。
 func NewScanner(startKey []byte, txn *MvccTxn) *Scanner {
-	// Your Code Here (4C).
+	// 你的代码在这里 (4C)。
 	return nil
 }
 
 func (scan *Scanner) Close() {
-	// Your Code Here (4C).
+	// 你的代码在这里 (4C)。
 }
 
-// Next returns the next key/value pair from the scanner. If the scanner is exhausted, then it will return `nil, nil, nil`.
+// Next 返回 scanner 中的下一个 key/value 对。如果 scanner 已耗尽，则返回 `nil, nil, nil`。
 func (scan *Scanner) Next() ([]byte, []byte, error) {
-	// Your Code Here (4C).
+	// 你的代码在这里 (4C)。
 	return nil, nil, nil
 }

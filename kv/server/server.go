@@ -15,14 +15,14 @@ import (
 
 var _ tinykvpb.TinyKvServer = new(Server)
 
-// Server is a TinyKV server, it 'faces outwards', sending and receiving messages from clients such as TinySQL.
+// Server 是一个 TinyKV 服务器，它"面向外部"，与 TinySQL 等客户端发送和接收消息。
 type Server struct {
 	storage storage.Storage
 
-	// (Used in 4B)
+	// （在 4B 中使用）
 	Latches *latches.Latches
 
-	// coprocessor API handler, out of course scope
+	// 协处理器 API 处理器，不在课程范围内
 	copHandler *coprocessor.CopHandler
 }
 
@@ -33,57 +33,57 @@ func NewServer(storage storage.Storage) *Server {
 	}
 }
 
-// The below functions are Server's gRPC API (implements TinyKvServer).
+// 以下函数是 Server 的 gRPC API（实现 TinyKvServer 接口）。
 
-// Raft commands (tinykv <-> tinykv)
-// Only used for RaftStorage, so trivially forward it.
+// Raft 命令（tinykv <-> tinykv）
+// 仅用于 RaftStorage，所以直接转发。
 func (server *Server) Raft(stream tinykvpb.TinyKv_RaftServer) error {
 	return server.storage.(*raft_storage.RaftStorage).Raft(stream)
 }
 
-// Snapshot stream (tinykv <-> tinykv)
-// Only used for RaftStorage, so trivially forward it.
+// 快照流（tinykv <-> tinykv）
+// 仅用于 RaftStorage，所以直接转发。
 func (server *Server) Snapshot(stream tinykvpb.TinyKv_SnapshotServer) error {
 	return server.storage.(*raft_storage.RaftStorage).Snapshot(stream)
 }
 
-// Transactional API.
+// 事务 API。
 func (server *Server) KvGet(_ context.Context, req *kvrpcpb.GetRequest) (*kvrpcpb.GetResponse, error) {
-	// Your Code Here (4B).
+	// 你的代码在这里 (4B)。
 	return nil, nil
 }
 
 func (server *Server) KvPrewrite(_ context.Context, req *kvrpcpb.PrewriteRequest) (*kvrpcpb.PrewriteResponse, error) {
-	// Your Code Here (4B).
+	// 你的代码在这里 (4B)。
 	return nil, nil
 }
 
 func (server *Server) KvCommit(_ context.Context, req *kvrpcpb.CommitRequest) (*kvrpcpb.CommitResponse, error) {
-	// Your Code Here (4B).
+	// 你的代码在这里 (4B)。
 	return nil, nil
 }
 
 func (server *Server) KvScan(_ context.Context, req *kvrpcpb.ScanRequest) (*kvrpcpb.ScanResponse, error) {
-	// Your Code Here (4C).
+	// 你的代码在这里 (4C)。
 	return nil, nil
 }
 
 func (server *Server) KvCheckTxnStatus(_ context.Context, req *kvrpcpb.CheckTxnStatusRequest) (*kvrpcpb.CheckTxnStatusResponse, error) {
-	// Your Code Here (4C).
+	// 你的代码在这里 (4C)。
 	return nil, nil
 }
 
 func (server *Server) KvBatchRollback(_ context.Context, req *kvrpcpb.BatchRollbackRequest) (*kvrpcpb.BatchRollbackResponse, error) {
-	// Your Code Here (4C).
+	// 你的代码在这里 (4C)。
 	return nil, nil
 }
 
 func (server *Server) KvResolveLock(_ context.Context, req *kvrpcpb.ResolveLockRequest) (*kvrpcpb.ResolveLockResponse, error) {
-	// Your Code Here (4C).
+	// 你的代码在这里 (4C)。
 	return nil, nil
 }
 
-// SQL push down commands.
+// SQL 下推命令。
 func (server *Server) Coprocessor(_ context.Context, req *coppb.Request) (*coppb.Response, error) {
 	resp := new(coppb.Response)
 	reader, err := server.storage.Reader(req.Context)

@@ -1,38 +1,57 @@
 package standalone_storage
 
 import (
+	"log"
+
+	"github.com/Connor1996/badger"
 	"github.com/pingcap-incubator/tinykv/kv/config"
 	"github.com/pingcap-incubator/tinykv/kv/storage"
 	"github.com/pingcap-incubator/tinykv/proto/pkg/kvrpcpb"
+	"github.com/pingcap/errors"
 )
 
-// StandAloneStorage is an implementation of `Storage` for a single-node TinyKV instance. It does not
-// communicate with other nodes and all data is stored locally.
+// StandAloneStorage 是单节点 TinyKV 实例的 `Storage` 接口实现。
+// 它不与其他节点通信，所有数据都存储在本地。
 type StandAloneStorage struct {
-	// Your Data Here (1).
+	// 你的数据在这里 (1)。
+	storage *badger.DB
+	config  *config.Config
 }
 
 func NewStandAloneStorage(conf *config.Config) *StandAloneStorage {
-	// Your Code Here (1).
-	return nil
+	aloneStorage := &StandAloneStorage{
+		config: conf,
+	}
+	option := conf.ToBadgerOptions()
+	db, err := badger.Open(option)
+	if err != nil {
+		log.Fatalf("初始化失败:err:%v", err)
+		return nil
+	}
+	aloneStorage.storage = db
+	return aloneStorage
 }
 
 func (s *StandAloneStorage) Start() error {
-	// Your Code Here (1).
-	return nil
+	if s == nil || s.storage == nil {
+		return errors.New("StandAloneStorage is nil")
+	}
+	return s.Start()
 }
 
 func (s *StandAloneStorage) Stop() error {
-	// Your Code Here (1).
-	return nil
+	if s == nil || s.storage == nil {
+		return errors.New("StandAloneStorage is nil")
+	}
+	return s.Stop()
 }
 
 func (s *StandAloneStorage) Reader(ctx *kvrpcpb.Context) (storage.StorageReader, error) {
-	// Your Code Here (1).
+	// 你的代码在这里 (1)。
 	return nil, nil
 }
 
 func (s *StandAloneStorage) Write(ctx *kvrpcpb.Context, batch []storage.Modify) error {
-	// Your Code Here (1).
+	// 你的代码在这里 (1)。
 	return nil
 }

@@ -28,7 +28,7 @@ type regionItem struct {
 	region *metapb.Region
 }
 
-// Less returns true if the region start key is less than the other.
+// Less 如果 region 的 start key 小于另一个则返回 true。
 func (r *regionItem) Less(other btree.Item) bool {
 	left := r.region.GetStartKey()
 	right := other.(*regionItem).region.GetStartKey()
@@ -41,8 +41,8 @@ type storeMeta struct {
 	regionRanges *btree.BTree
 	/// region_id -> region
 	regions map[uint64]*metapb.Region
-	/// `MsgRequestVote` messages from newly split Regions shouldn't be dropped if there is no
-	/// such Region in this store now. So the messages are recorded temporarily and will be handled later.
+	/// 来自新分裂 Region 的 `MsgRequestVote` 消息如果此 store 中当前没有这样的 Region，
+	/// 则不应该被丢弃。所以消息被临时记录，稍后会被处理。
 	pendingVotes []*rspb.RaftMessage
 }
 
@@ -58,11 +58,11 @@ func (m *storeMeta) setRegion(region *metapb.Region, peer *peer) {
 	peer.SetRegion(region)
 }
 
-// getOverlaps gets the regions which are overlapped with the specified region range.
+// getOverlapRegions 获取与指定 region 范围重叠的 region。
 func (m *storeMeta) getOverlapRegions(region *metapb.Region) []*metapb.Region {
 	item := &regionItem{region: region}
 	var result *regionItem
-	// find is a helper function to find an item that contains the regions start key.
+	// find 是一个辅助函数，用于查找包含 region start key 的项。
 	m.regionRanges.DescendLessOrEqual(item, func(i btree.Item) bool {
 		result = i.(*regionItem)
 		return false
@@ -104,10 +104,10 @@ type Transport interface {
 	Send(msg *rspb.RaftMessage) error
 }
 
-/// loadPeers loads peers in this store. It scans the db engine, loads all regions and their peers from it
-/// WARN: This store should not be used before initialized.
+/// loadPeers 加载此 store 中的 peer。它扫描 db 引擎，从中加载所有 region 及其 peer。
+/// 警告：此 store 在初始化之前不应被使用。
 func (bs *Raftstore) loadPeers() ([]*peer, error) {
-	// Scan region meta to get saved regions.
+	// 扫描 region 元数据以获取保存的 region。
 	startKey := meta.RegionMetaMinKey
 	endKey := meta.RegionMetaMaxKey
 	ctx := bs.ctx
@@ -121,7 +121,7 @@ func (bs *Raftstore) loadPeers() ([]*peer, error) {
 	kvWB := new(engine_util.WriteBatch)
 	raftWB := new(engine_util.WriteBatch)
 	err := kvEngine.View(func(txn *badger.Txn) error {
-		// get all regions from RegionLocalState
+		// 从 RegionLocalState 获取所有 region
 		it := txn.NewIterator(badger.DefaultIteratorOptions)
 		defer it.Close()
 		for it.Seek(startKey); it.Valid(); it.Next() {
@@ -159,8 +159,7 @@ func (bs *Raftstore) loadPeers() ([]*peer, error) {
 			}
 			ctx.storeMeta.regionRanges.ReplaceOrInsert(&regionItem{region: region})
 			ctx.storeMeta.regions[regionID] = region
-			// No need to check duplicated here, because we use region id as the key
-			// in DB.
+			// 这里不需要检查重复，因为我们使用 region id 作为 DB 中的 key。
 			regionPeers = append(regionPeers, peer)
 		}
 		return nil
@@ -180,7 +179,7 @@ func (bs *Raftstore) clearStaleMeta(kvWB, raftWB *engine_util.WriteBatch, origin
 	region := originState.Region
 	raftState, err := meta.GetRaftLocalState(bs.ctx.engine.Raft, region.Id)
 	if err != nil {
-		// it has been cleaned up.
+		// 它已经被清理过了。
 		return
 	}
 	err = ClearMeta(bs.ctx.engine, kvWB, raftWB, region.Id, raftState.LastIndex)
@@ -218,7 +217,7 @@ func (bs *Raftstore) start(
 	schedulerClient scheduler_client.Client,
 	snapMgr *snap.SnapManager) error {
 	y.Assert(bs.workers == nil)
-	// TODO: we can get cluster meta regularly too later.
+	// TODO：我们之后也可以定期获取集群元数据。
 	if err := cfg.Validate(); err != nil {
 		return err
 	}
