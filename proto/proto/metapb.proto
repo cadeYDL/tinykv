@@ -9,10 +9,10 @@ option (gogoproto.unmarshaler_all) = true;
 
 message Cluster {
     uint64 id = 1;
-    // max peer count for a region.
-    // scheduler will do the auto-balance if region peer count mismatches.
+    // region 的最大 peer 数量。
+    // 如果 region peer 数量不匹配，调度器将进行自动平衡。
     uint32 max_peer_count = 2;
-    // more attributes......
+    // 更多属性......
 }
 
 enum StoreState {
@@ -23,21 +23,21 @@ enum StoreState {
 
 message Store {
     uint64 id = 1;
-    // Address to handle client requests (kv, cop, etc.)
+    // 处理客户端请求的地址（kv、cop 等）
     string address = 2;
     StoreState state = 3;
 }
 
 message RegionEpoch {
-    // Conf change version, auto increment when add or remove peer
+    // 配置变更版本，添加或移除 peer 时自动递增
     uint64 conf_ver = 1;
-    // Region version, auto increment when split or merge
+    // Region 版本，分裂或合并时自动递增
     uint64 version = 2;
 }
 
 message Region {
     uint64 id = 1;
-    // Region key range [start_key, end_key).
+    // Region key 范围 [start_key, end_key)。
     bytes start_key = 2;
     bytes end_key = 3;
     RegionEpoch region_epoch = 4;

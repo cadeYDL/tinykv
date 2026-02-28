@@ -29,7 +29,7 @@ type regionItem struct {
 	region *RegionInfo
 }
 
-// Less returns true if the region start key is less than the other.
+// Less 如果 region 的起始 key 小于另一个则返回 true。
 func (r *regionItem) Less(other btree.Item) bool {
 	left := r.region.GetStartKey()
 	right := other.(*regionItem).region.GetStartKey()
@@ -59,16 +59,16 @@ func (t *regionTree) length() int {
 	return t.tree.Len()
 }
 
-// getOverlaps gets the regions which are overlapped with the specified region range.
+// getOverlaps 获取与指定 region 范围重叠的 region。
 func (t *regionTree) getOverlaps(region *RegionInfo) []*RegionInfo {
 	item := &regionItem{region: region}
 
-	// note that find() gets the last item that is less or equal than the region.
-	// in the case: |_______a_______|_____b_____|___c___|
-	// new region is     |______d______|
-	// find() will return regionItem of region_a
-	// and both startKey of region_a and region_b are less than endKey of region_d,
-	// thus they are regarded as overlapped regions.
+	// 注意 find() 获取小于或等于该 region 的最后一个项。
+	// 在这种情况下：|_______a_______|_____b_____|___c___|
+	// 新 region 是      |______d______|
+	// find() 将返回 region_a 的 regionItem
+	// 并且 region_a 和 region_b 的 startKey 都小于 region_d 的 endKey，
+	// 因此它们被视为重叠的 region。
 	result := t.find(region)
 	if result == nil {
 		result = item
@@ -86,9 +86,8 @@ func (t *regionTree) getOverlaps(region *RegionInfo) []*RegionInfo {
 	return overlaps
 }
 
-// update updates the tree with the region.
-// It finds and deletes all the overlapped regions first, and then
-// insert the region.
+// update 使用该 region 更新树。
+// 它首先查找并删除所有重叠的 region，然后插入该 region。
 func (t *regionTree) update(region *RegionInfo) []*RegionInfo {
 	overlaps := t.getOverlaps(region)
 	for _, item := range overlaps {
@@ -104,9 +103,8 @@ func (t *regionTree) update(region *RegionInfo) []*RegionInfo {
 	return overlaps
 }
 
-// remove removes a region if the region is in the tree.
-// It will do nothing if it cannot find the region or the found region
-// is not the same with the region.
+// remove 如果 region 在树中则移除它。
+// 如果找不到该 region 或找到的 region 与该 region 不同，则不执行任何操作。
 func (t *regionTree) remove(region *RegionInfo) {
 	if t.length() == 0 {
 		return
@@ -119,7 +117,7 @@ func (t *regionTree) remove(region *RegionInfo) {
 	t.tree.Delete(result)
 }
 
-// search returns a region that contains the key.
+// search 返回包含该 key 的 region。
 func (t *regionTree) search(regionKey []byte) *RegionInfo {
 	region := &RegionInfo{meta: &metapb.Region{StartKey: regionKey}}
 	result := t.find(region)
@@ -129,7 +127,7 @@ func (t *regionTree) search(regionKey []byte) *RegionInfo {
 	return result.region
 }
 
-// searchPrev returns the previous region of the region where the regionKey is located.
+// searchPrev 返回 regionKey 所在 region 的前一个 region。
 func (t *regionTree) searchPrev(regionKey []byte) *RegionInfo {
 	curRegion := &RegionInfo{meta: &metapb.Region{StartKey: regionKey}}
 	curRegionItem := t.find(curRegion)
@@ -146,8 +144,7 @@ func (t *regionTree) searchPrev(regionKey []byte) *RegionInfo {
 	return prevRegionItem.region
 }
 
-// find is a helper function to find an item that contains the regions start
-// key.
+// find 是一个辅助函数，用于查找包含 region 起始 key 的项。
 func (t *regionTree) find(region *RegionInfo) *regionItem {
 	item := &regionItem{region: region}
 
@@ -164,11 +161,11 @@ func (t *regionTree) find(region *RegionInfo) *regionItem {
 	return result
 }
 
-// scanRage scans from the first region containing or behind the start key
-// until f return false
+// scanRange 从包含或位于起始 key 之后的第一个 region 开始扫描，
+// 直到 f 返回 false
 func (t *regionTree) scanRange(startKey []byte, f func(*RegionInfo) bool) {
 	region := &RegionInfo{meta: &metapb.Region{StartKey: startKey}}
-	// find if there is a region with key range [s, d), s < startKey < d
+	// 查找是否存在 key 范围为 [s, d) 且 s < startKey < d 的 region
 	startItem := t.find(region)
 	if startItem == nil {
 		startItem = &regionItem{region: &RegionInfo{meta: &metapb.Region{StartKey: startKey}}}
@@ -198,7 +195,7 @@ func (t *regionTree) getAdjacentRegions(region *RegionInfo) (*regionItem, *regio
 	return prev, next
 }
 
-// RandomRegion is used to get a random region intersecting with the range [startKey, endKey).
+// RandomRegion 用于获取与范围 [startKey, endKey) 相交的随机 region。
 func (t *regionTree) RandomRegion(startKey, endKey []byte) *RegionInfo {
 	if t.length() == 0 {
 		return nil
@@ -214,8 +211,8 @@ func (t *regionTree) RandomRegion(startKey, endKey []byte) *RegionInfo {
 		endIndex = t.tree.Len()
 	}
 
-	// Consider that the item in the tree may not be continuous,
-	// we need to check if the previous item contains the key.
+	// 考虑到树中的项可能不连续，
+	// 我们需要检查前一个项是否包含该 key。
 	if startIndex != 0 && startRegion == nil && t.tree.GetAt(startIndex-1).(*regionItem).Contains(startKey) {
 		startIndex--
 	}

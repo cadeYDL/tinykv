@@ -25,11 +25,11 @@ import (
 	"go.uber.org/zap"
 )
 
-// StoreInfo contains information about a store.
+// StoreInfo 包含关于 store 的信息。
 type StoreInfo struct {
 	meta  *metapb.Store
 	stats *schedulerpb.StoreStats
-	// Blocked means that the store is blocked from balance.
+	// Blocked 表示 store 被禁止进行负载均衡。
 	blocked          bool
 	leaderCount      int
 	regionCount      int
@@ -42,7 +42,7 @@ type StoreInfo struct {
 	available        func() bool
 }
 
-// NewStoreInfo creates StoreInfo with meta data.
+// NewStoreInfo 使用元数据创建 StoreInfo。
 func NewStoreInfo(store *metapb.Store, opts ...StoreCreateOption) *StoreInfo {
 	storeInfo := &StoreInfo{
 		meta:         store,
@@ -56,7 +56,7 @@ func NewStoreInfo(store *metapb.Store, opts ...StoreCreateOption) *StoreInfo {
 	return storeInfo
 }
 
-// Clone creates a copy of current StoreInfo.
+// Clone 创建当前 StoreInfo 的副本。
 func (s *StoreInfo) Clone(opts ...StoreCreateOption) *StoreInfo {
 	meta := proto.Clone(s.meta).(*metapb.Store)
 	store := &StoreInfo{
@@ -80,12 +80,12 @@ func (s *StoreInfo) Clone(opts ...StoreCreateOption) *StoreInfo {
 	return store
 }
 
-// IsBlocked returns if the store is blocked.
+// IsBlocked 返回 store 是否被阻塞。
 func (s *StoreInfo) IsBlocked() bool {
 	return s.blocked
 }
 
-// IsAvailable returns if the store bucket of limitation is available
+// IsAvailable 返回 store 的限制桶是否可用
 func (s *StoreInfo) IsAvailable() bool {
 	if s.available == nil {
 		return true
@@ -93,139 +93,139 @@ func (s *StoreInfo) IsAvailable() bool {
 	return s.available()
 }
 
-// IsUp checks if the store's state is Up.
+// IsUp 检查 store 的状态是否为 Up。
 func (s *StoreInfo) IsUp() bool {
 	return s.GetState() == metapb.StoreState_Up
 }
 
-// IsOffline checks if the store's state is Offline.
+// IsOffline 检查 store 的状态是否为 Offline。
 func (s *StoreInfo) IsOffline() bool {
 	return s.GetState() == metapb.StoreState_Offline
 }
 
-// IsTombstone checks if the store's state is Tombstone.
+// IsTombstone 检查 store 的状态是否为 Tombstone。
 func (s *StoreInfo) IsTombstone() bool {
 	return s.GetState() == metapb.StoreState_Tombstone
 }
 
-// DownTime returns the time elapsed since last heartbeat.
+// DownTime 返回自上次心跳以来经过的时间。
 func (s *StoreInfo) DownTime() time.Duration {
 	return time.Since(s.GetLastHeartbeatTS())
 }
 
-// GetMeta returns the meta information of the store.
+// GetMeta 返回 store 的元信息。
 func (s *StoreInfo) GetMeta() *metapb.Store {
 	return s.meta
 }
 
-// GetState returns the state of the store.
+// GetState 返回 store 的状态。
 func (s *StoreInfo) GetState() metapb.StoreState {
 	return s.meta.GetState()
 }
 
-// GetAddress returns the address of the store.
+// GetAddress 返回 store 的地址。
 func (s *StoreInfo) GetAddress() string {
 	return s.meta.GetAddress()
 }
 
-// GetID returns the ID of the store.
+// GetID 返回 store 的 ID。
 func (s *StoreInfo) GetID() uint64 {
 	return s.meta.GetId()
 }
 
-// GetStoreStats returns the statistics information of the store.
+// GetStoreStats 返回 store 的统计信息。
 func (s *StoreInfo) GetStoreStats() *schedulerpb.StoreStats {
 	return s.stats
 }
 
-// GetCapacity returns the capacity size of the store.
+// GetCapacity 返回 store 的容量大小。
 func (s *StoreInfo) GetCapacity() uint64 {
 	return s.stats.GetCapacity()
 }
 
-// GetAvailable returns the available size of the store.
+// GetAvailable 返回 store 的可用大小。
 func (s *StoreInfo) GetAvailable() uint64 {
 	return s.stats.GetAvailable()
 }
 
-// GetUsedSize returns the used size of the store.
+// GetUsedSize 返回 store 的已用大小。
 func (s *StoreInfo) GetUsedSize() uint64 {
 	return s.stats.GetUsedSize()
 }
 
-// IsBusy returns if the store is busy.
+// IsBusy 返回 store 是否繁忙。
 func (s *StoreInfo) IsBusy() bool {
 	return s.stats.GetIsBusy()
 }
 
-// GetSendingSnapCount returns the current sending snapshot count of the store.
+// GetSendingSnapCount 返回 store 当前发送快照的数量。
 func (s *StoreInfo) GetSendingSnapCount() uint32 {
 	return s.stats.GetSendingSnapCount()
 }
 
-// GetReceivingSnapCount returns the current receiving snapshot count of the store.
+// GetReceivingSnapCount 返回 store 当前接收快照的数量。
 func (s *StoreInfo) GetReceivingSnapCount() uint32 {
 	return s.stats.GetReceivingSnapCount()
 }
 
-// GetApplyingSnapCount returns the current applying snapshot count of the store.
+// GetApplyingSnapCount 返回 store 当前应用快照的数量。
 func (s *StoreInfo) GetApplyingSnapCount() uint32 {
 	return s.stats.GetApplyingSnapCount()
 }
 
-// GetStartTime returns the start time of the store.
+// GetStartTime 返回 store 的启动时间。
 func (s *StoreInfo) GetStartTime() uint32 {
 	return s.stats.GetStartTime()
 }
 
-// GetLeaderCount returns the leader count of the store.
+// GetLeaderCount 返回 store 的 leader 数量。
 func (s *StoreInfo) GetLeaderCount() int {
 	return s.leaderCount
 }
 
-// GetRegionCount returns the Region count of the store.
+// GetRegionCount 返回 store 的 Region 数量。
 func (s *StoreInfo) GetRegionCount() int {
 	return s.regionCount
 }
 
-// GetLeaderSize returns the leader size of the store.
+// GetLeaderSize 返回 store 的 leader 大小。
 func (s *StoreInfo) GetLeaderSize() int64 {
 	return s.leaderSize
 }
 
-// GetRegionSize returns the Region size of the store.
+// GetRegionSize 返回 store 的 Region 大小。
 func (s *StoreInfo) GetRegionSize() int64 {
 	return s.regionSize
 }
 
-// GetPendingPeerCount returns the pending peer count of the store.
+// GetPendingPeerCount 返回 store 的 pending peer 数量。
 func (s *StoreInfo) GetPendingPeerCount() int {
 	return s.pendingPeerCount
 }
 
-// GetLeaderWeight returns the leader weight of the store.
+// GetLeaderWeight 返回 store 的 leader 权重。
 func (s *StoreInfo) GetLeaderWeight() float64 {
 	return s.leaderWeight
 }
 
-// GetRegionWeight returns the Region weight of the store.
+// GetRegionWeight 返回 store 的 Region 权重。
 func (s *StoreInfo) GetRegionWeight() float64 {
 	return s.regionWeight
 }
 
-// GetLastHeartbeatTS returns the last heartbeat timestamp of the store.
+// GetLastHeartbeatTS 返回 store 的上次心跳时间戳。
 func (s *StoreInfo) GetLastHeartbeatTS() time.Time {
 	return s.lastHeartbeatTS
 }
 
 const minWeight = 1e-6
 
-// StorageSize returns store's used storage size reported from tikv.
+// StorageSize 返回 tikv 报告的 store 已用存储大小。
 func (s *StoreInfo) StorageSize() uint64 {
 	return s.GetUsedSize()
 }
 
-// AvailableRatio is store's freeSpace/capacity.
+// AvailableRatio 是 store 的 freeSpace/capacity 比率。
 func (s *StoreInfo) AvailableRatio() float64 {
 	if s.GetCapacity() == 0 {
 		return 0
@@ -233,12 +233,12 @@ func (s *StoreInfo) AvailableRatio() float64 {
 	return float64(s.GetAvailable()) / float64(s.GetCapacity())
 }
 
-// IsLowSpace checks if the store is lack of space.
+// IsLowSpace 检查 store 是否空间不足。
 func (s *StoreInfo) IsLowSpace(lowSpaceRatio float64) bool {
 	return s.GetStoreStats() != nil && s.AvailableRatio() < 1-lowSpaceRatio
 }
 
-// ResourceCount returns count of leader/region in the store.
+// ResourceCount 返回 store 中 leader/region 的数量。
 func (s *StoreInfo) ResourceCount(kind ResourceKind) uint64 {
 	switch kind {
 	case LeaderKind:
@@ -250,7 +250,7 @@ func (s *StoreInfo) ResourceCount(kind ResourceKind) uint64 {
 	}
 }
 
-// ResourceSize returns size of leader/region in the store
+// ResourceSize 返回 store 中 leader/region 的大小
 func (s *StoreInfo) ResourceSize(kind ResourceKind) int64 {
 	switch kind {
 	case LeaderKind:
@@ -262,7 +262,7 @@ func (s *StoreInfo) ResourceSize(kind ResourceKind) int64 {
 	}
 }
 
-// ResourceWeight returns weight of leader/region in the score
+// ResourceWeight 返回评分中 leader/region 的权重
 func (s *StoreInfo) ResourceWeight(kind ResourceKind) float64 {
 	switch kind {
 	case LeaderKind:
@@ -282,12 +282,12 @@ func (s *StoreInfo) ResourceWeight(kind ResourceKind) float64 {
 	}
 }
 
-// GetStartTS returns the start timestamp.
+// GetStartTS 返回启动时间戳。
 func (s *StoreInfo) GetStartTS() time.Time {
 	return time.Unix(int64(s.GetStartTime()), 0)
 }
 
-// GetUptime returns the uptime.
+// GetUptime 返回运行时间。
 func (s *StoreInfo) GetUptime() time.Duration {
 	uptime := s.GetLastHeartbeatTS().Sub(s.GetStartTS())
 	if uptime > 0 {
@@ -297,21 +297,19 @@ func (s *StoreInfo) GetUptime() time.Duration {
 }
 
 var (
-	// If a store's last heartbeat is storeDisconnectDuration ago, the store will
-	// be marked as disconnected state. The value should be greater than tikv's
-	// store heartbeat interval (default 10s).
+	// 如果 store 的上次心跳是 storeDisconnectDuration 之前，该 store 将被标记为断开连接状态。
+	// 该值应大于 tikv 的 store 心跳间隔（默认 10s）。
 	storeDisconnectDuration = 20 * time.Second
 	storeUnhealthDuration   = 10 * time.Minute
 )
 
-// IsDisconnected checks if a store is disconnected, which means PD misses
-// tikv's store heartbeat for a short time, maybe caused by process restart or
-// temporary network failure.
+// IsDisconnected 检查 store 是否断开连接，这意味着 PD 短时间内未收到
+// tikv 的 store 心跳，可能是由于进程重启或临时网络故障造成的。
 func (s *StoreInfo) IsDisconnected() bool {
 	return s.DownTime() > storeDisconnectDuration
 }
 
-// IsUnhealth checks if a store is unhealth.
+// IsUnhealth 检查 store 是否不健康。
 func (s *StoreInfo) IsUnhealth() bool {
 	return s.DownTime() > storeUnhealthDuration
 }
@@ -324,24 +322,24 @@ func (e storeNotFoundErr) Error() string {
 	return fmt.Sprintf("store %v not found", e.storeID)
 }
 
-// NewStoreNotFoundErr is for log of store not found
+// NewStoreNotFoundErr 用于记录 store 未找到的日志
 func NewStoreNotFoundErr(storeID uint64) errcode.ErrorCode {
 	return errcode.NewNotFoundErr(storeNotFoundErr{storeID})
 }
 
-// StoresInfo contains information about all stores.
+// StoresInfo 包含所有 store 的信息。
 type StoresInfo struct {
 	stores map[uint64]*StoreInfo
 }
 
-// NewStoresInfo create a StoresInfo with map of storeID to StoreInfo
+// NewStoresInfo 创建一个 storeID 到 StoreInfo 映射的 StoresInfo
 func NewStoresInfo() *StoresInfo {
 	return &StoresInfo{
 		stores: make(map[uint64]*StoreInfo),
 	}
 }
 
-// GetStore returns a copy of the StoreInfo with the specified storeID.
+// GetStore 返回具有指定 storeID 的 StoreInfo 副本。
 func (s *StoresInfo) GetStore(storeID uint64) *StoreInfo {
 	store, ok := s.stores[storeID]
 	if !ok {
@@ -350,7 +348,7 @@ func (s *StoresInfo) GetStore(storeID uint64) *StoreInfo {
 	return store
 }
 
-// TakeStore returns the point of the origin StoreInfo with the specified storeID.
+// TakeStore 返回具有指定 storeID 的原始 StoreInfo 的指针。
 func (s *StoresInfo) TakeStore(storeID uint64) *StoreInfo {
 	store, ok := s.stores[storeID]
 	if !ok {
@@ -359,12 +357,12 @@ func (s *StoresInfo) TakeStore(storeID uint64) *StoreInfo {
 	return store
 }
 
-// SetStore sets a StoreInfo with storeID.
+// SetStore 使用 storeID 设置 StoreInfo。
 func (s *StoresInfo) SetStore(store *StoreInfo) {
 	s.stores[store.GetID()] = store
 }
 
-// BlockStore blocks a StoreInfo with storeID.
+// BlockStore 阻塞具有 storeID 的 StoreInfo。
 func (s *StoresInfo) BlockStore(storeID uint64) errcode.ErrorCode {
 	op := errcode.Op("store.block")
 	store, ok := s.stores[storeID]
@@ -378,7 +376,7 @@ func (s *StoresInfo) BlockStore(storeID uint64) errcode.ErrorCode {
 	return nil
 }
 
-// UnblockStore unblocks a StoreInfo with storeID.
+// UnblockStore 解除具有 storeID 的 StoreInfo 的阻塞。
 func (s *StoresInfo) UnblockStore(storeID uint64) {
 	store, ok := s.stores[storeID]
 	if !ok {
@@ -388,14 +386,14 @@ func (s *StoresInfo) UnblockStore(storeID uint64) {
 	s.stores[storeID] = store.Clone(SetStoreUnBlock())
 }
 
-// AttachAvailableFunc attaches f to a specific store.
+// AttachAvailableFunc 将函数 f 附加到特定 store。
 func (s *StoresInfo) AttachAvailableFunc(storeID uint64, f func() bool) {
 	if store, ok := s.stores[storeID]; ok {
 		s.stores[storeID] = store.Clone(SetAvailableFunc(f))
 	}
 }
 
-// GetStores gets a complete set of StoreInfo.
+// GetStores 获取完整的 StoreInfo 集合。
 func (s *StoresInfo) GetStores() []*StoreInfo {
 	stores := make([]*StoreInfo, 0, len(s.stores))
 	for _, store := range s.stores {
@@ -404,7 +402,7 @@ func (s *StoresInfo) GetStores() []*StoreInfo {
 	return stores
 }
 
-// GetMetaStores gets a complete set of metapb.Store.
+// GetMetaStores 获取完整的 metapb.Store 集合。
 func (s *StoresInfo) GetMetaStores() []*metapb.Store {
 	stores := make([]*metapb.Store, 0, len(s.stores))
 	for _, store := range s.stores {
@@ -413,52 +411,52 @@ func (s *StoresInfo) GetMetaStores() []*metapb.Store {
 	return stores
 }
 
-// DeleteStore deletes tombstone record form store
+// DeleteStore 从 store 中删除 tombstone 记录
 func (s *StoresInfo) DeleteStore(store *StoreInfo) {
 	delete(s.stores, store.GetID())
 }
 
-// GetStoreCount returns the total count of storeInfo.
+// GetStoreCount 返回 storeInfo 的总数。
 func (s *StoresInfo) GetStoreCount() int {
 	return len(s.stores)
 }
 
-// SetLeaderCount sets the leader count to a storeInfo.
+// SetLeaderCount 为 storeInfo 设置 leader 数量。
 func (s *StoresInfo) SetLeaderCount(storeID uint64, leaderCount int) {
 	if store, ok := s.stores[storeID]; ok {
 		s.stores[storeID] = store.Clone(SetLeaderCount(leaderCount))
 	}
 }
 
-// SetRegionCount sets the region count to a storeInfo.
+// SetRegionCount 为 storeInfo 设置 region 数量。
 func (s *StoresInfo) SetRegionCount(storeID uint64, regionCount int) {
 	if store, ok := s.stores[storeID]; ok {
 		s.stores[storeID] = store.Clone(SetRegionCount(regionCount))
 	}
 }
 
-// SetPendingPeerCount sets the pending count to a storeInfo.
+// SetPendingPeerCount 为 storeInfo 设置 pending 数量。
 func (s *StoresInfo) SetPendingPeerCount(storeID uint64, pendingPeerCount int) {
 	if store, ok := s.stores[storeID]; ok {
 		s.stores[storeID] = store.Clone(SetPendingPeerCount(pendingPeerCount))
 	}
 }
 
-// SetLeaderSize sets the leader size to a storeInfo.
+// SetLeaderSize 为 storeInfo 设置 leader 大小。
 func (s *StoresInfo) SetLeaderSize(storeID uint64, leaderSize int64) {
 	if store, ok := s.stores[storeID]; ok {
 		s.stores[storeID] = store.Clone(SetLeaderSize(leaderSize))
 	}
 }
 
-// SetRegionSize sets the region size to a storeInfo.
+// SetRegionSize 为 storeInfo 设置 region 大小。
 func (s *StoresInfo) SetRegionSize(storeID uint64, regionSize int64) {
 	if store, ok := s.stores[storeID]; ok {
 		s.stores[storeID] = store.Clone(SetRegionSize(regionSize))
 	}
 }
 
-// UpdateStoreStatus updates the information of the store.
+// UpdateStoreStatus 更新 store 的信息。
 func (s *StoresInfo) UpdateStoreStatus(storeID uint64, leaderCount int, regionCount int, pendingPeerCount int, leaderSize int64, regionSize int64) {
 	if store, ok := s.stores[storeID]; ok {
 		newStore := store.Clone(SetLeaderCount(leaderCount),

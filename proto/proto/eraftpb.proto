@@ -6,16 +6,15 @@ enum EntryType {
     EntryConfChange = 1;
 }
 
-// The entry is a type of change that needs to be applied. It contains two data fields.
-// While the fields are built into the model; their usage is determined by the entry_type.
+// Entry 是需要被应用的变更类型。它包含两个数据字段。
+// 虽然这些字段内置于模型中，但它们的使用由 entry_type 决定。
 //
-// For normal entries, the data field should contain the data change that should be applied.
-// The context field can be used for any contextual data that might be relevant to the
-// application of the data.
+// 对于普通条目，data 字段应包含需要应用的数据变更。
+// context 字段可用于任何可能与数据应用相关的上下文数据。
 //
-// For configuration changes, the data will contain the ConfChange message and the
-// context will provide anything needed to assist the configuration change. The context
-// is for the user to set and use in this case.
+// 对于配置变更，data 将包含 ConfChange 消息，
+// context 将提供协助配置变更所需的任何内容。
+// 在这种情况下，context 由用户设置和使用。
 message Entry {
     EntryType entry_type = 1;
     uint64 term = 2;
@@ -23,8 +22,8 @@ message Entry {
     bytes data = 4;
 }
 
-// SnapshotMetadata contains the log index and term of the last log applied to this
-// Snapshot, along with the membership information of the time the last log applied.
+// SnapshotMetadata 包含应用到此快照的最后一条日志的索引和任期，
+// 以及最后一条日志应用时的成员信息。
 message SnapshotMetadata {
     ConfState conf_state = 1;
     uint64 index = 2;
@@ -36,35 +35,35 @@ message Snapshot {
     SnapshotMetadata metadata = 2;
 }
 
-// Some MessageType defined here are local messages which not come from the network, but should
-// also use the Step method to handle
+// 这里定义的一些 MessageType 是本地消息，不来自网络，但也应该
+// 使用 Step 方法来处理
 enum MessageType {
-    // 'MessageType_MsgHup' is a local message used for election. If an election timeout happened,
-    // the node should pass 'MessageType_MsgHup' to its Step method and start a new election.
+    // 'MessageType_MsgHup' 是用于选举的本地消息。如果发生选举超时，
+    // 节点应该将 'MessageType_MsgHup' 传递给其 Step 方法并开始新的选举。
     MsgHup = 0;
-    // 'MessageType_MsgBeat' is a local message that signals the leader to send a heartbeat
-    // of the 'MessageType_MsgHeartbeat' type to its followers.
+    // 'MessageType_MsgBeat' 是一个本地消息，通知 leader 向其 follower
+    // 发送 'MessageType_MsgHeartbeat' 类型的心跳。
     MsgBeat = 1;
-    // 'MessageType_MsgPropose' is a local message that proposes to append data to the leader's log entries.
+    // 'MessageType_MsgPropose' 是一个本地消息，提议将数据追加到 leader 的日志条目中。
     MsgPropose = 2;
-    // 'MessageType_MsgAppend' contains log entries to replicate.
+    // 'MessageType_MsgAppend' 包含要复制的日志条目。
     MsgAppend = 3;
-    // 'MessageType_MsgAppendResponse' is response to log replication request('MessageType_MsgAppend').
+    // 'MessageType_MsgAppendResponse' 是对日志复制请求（'MessageType_MsgAppend'）的响应。
     MsgAppendResponse = 4;
-    // 'MessageType_MsgRequestVote' requests votes for election.
+    // 'MessageType_MsgRequestVote' 请求选举投票。
     MsgRequestVote = 5;
-    // 'MessageType_MsgRequestVoteResponse' contains responses from voting request.
+    // 'MessageType_MsgRequestVoteResponse' 包含投票请求的响应。
     MsgRequestVoteResponse = 6;
-    // 'MessageType_MsgSnapshot' requests to install a snapshot message.
+    // 'MessageType_MsgSnapshot' 请求安装快照消息。
     MsgSnapshot = 7;
-    // 'MessageType_MsgHeartbeat' sends heartbeat from leader to its followers.
+    // 'MessageType_MsgHeartbeat' 从 leader 向其 follower 发送心跳。
     MsgHeartbeat = 8;
-    // 'MessageType_MsgHeartbeatResponse' is a response to 'MessageType_MsgHeartbeat'.
+    // 'MessageType_MsgHeartbeatResponse' 是对 'MessageType_MsgHeartbeat' 的响应。
     MsgHeartbeatResponse = 9;
-    // 'MessageType_MsgTransferLeader' requests the leader to transfer its leadership.
+    // 'MessageType_MsgTransferLeader' 请求 leader 转移其领导权。
     MsgTransferLeader = 11;
-    // 'MessageType_MsgTimeoutNow' send from the leader to the leadership transfer target, to let
-    // the transfer target timeout immediately and start a new election.
+    // 'MessageType_MsgTimeoutNow' 从 leader 发送到领导权转移目标，
+    // 让转移目标立即超时并开始新的选举。
     MsgTimeoutNow = 12;
 }
 
@@ -81,17 +80,16 @@ message Message {
     bool reject = 10;
 }
 
-// HardState contains the state of a node need to be peristed, including the current term, commit index 
-// and the vote record
+// HardState 包含节点需要持久化的状态，包括当前任期、提交索引和投票记录
 message HardState {
     uint64 term = 1;
     uint64 vote = 2;
     uint64 commit = 3;
 }
 
-// ConfState contains the current membership information of the raft group
+// ConfState 包含 raft 组的当前成员信息
 message ConfState {
-    // all node id
+    // 所有节点 id
     repeated uint64 nodes = 1;
 }
 
@@ -100,10 +98,10 @@ enum ConfChangeType {
     RemoveNode = 1;
 }
 
-// ConfChange is the data that attach on entry with EntryConfChange type
+// ConfChange 是附加在 EntryConfChange 类型条目上的数据
 message ConfChange {
     ConfChangeType change_type = 1;
-    // node will be add/remove
+    // 将被添加/移除的节点
     uint64 node_id = 2;
     bytes context = 3;
 }

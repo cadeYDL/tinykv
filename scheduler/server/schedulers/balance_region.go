@@ -32,7 +32,7 @@ func init() {
 }
 
 const (
-	// balanceRegionRetryLimit is the limit to retry schedule for selected store.
+	// balanceRegionRetryLimit 是对选定 store 重试调度的限制。
 	balanceRegionRetryLimit = 10
 	balanceRegionName       = "balance-region-scheduler"
 )
@@ -43,8 +43,7 @@ type balanceRegionScheduler struct {
 	opController *schedule.OperatorController
 }
 
-// newBalanceRegionScheduler creates a scheduler that tends to keep regions on
-// each store balanced.
+// newBalanceRegionScheduler 创建一个调度器，倾向于保持每个 store 上的 region 平衡。
 func newBalanceRegionScheduler(opController *schedule.OperatorController, opts ...BalanceRegionCreateOption) schedule.Scheduler {
 	base := newBaseScheduler(opController)
 	s := &balanceRegionScheduler{
@@ -57,7 +56,7 @@ func newBalanceRegionScheduler(opController *schedule.OperatorController, opts .
 	return s
 }
 
-// BalanceRegionCreateOption is used to create a scheduler with an option.
+// BalanceRegionCreateOption 用于使用选项创建调度器。
 type BalanceRegionCreateOption func(s *balanceRegionScheduler)
 
 func (s *balanceRegionScheduler) GetName() string {
@@ -76,7 +75,7 @@ func (s *balanceRegionScheduler) IsScheduleAllowed(cluster opt.Cluster) bool {
 }
 
 func (s *balanceRegionScheduler) Schedule(cluster opt.Cluster) *operator.Operator {
-	// Your Code Here (3C).
+	// 你的代码在这里 (3C)。
 
 	return nil
 }

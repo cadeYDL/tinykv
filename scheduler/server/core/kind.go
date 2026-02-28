@@ -13,35 +13,35 @@
 
 package core
 
-// PriorityLevel lower level means higher priority
+// PriorityLevel 较低的级别表示较高的优先级
 type PriorityLevel int
 
-// Built-in priority level
+// 内置优先级级别
 const (
 	LowPriority PriorityLevel = iota
 	NormalPriority
 	HighPriority
 )
 
-// ScheduleKind distinguishes resources and schedule strategy.
+// ScheduleKind 区分资源和调度策略。
 type ScheduleKind struct {
 	Resource ResourceKind
 }
 
-// NewScheduleKind creates a schedule kind with resource kind and schedule strategy.
+// NewScheduleKind 使用资源类型和调度策略创建调度类型。
 func NewScheduleKind(Resource ResourceKind) ScheduleKind {
 	return ScheduleKind{
 		Resource: Resource,
 	}
 }
 
-// ResourceKind distinguishes different kinds of resources.
+// ResourceKind 区分不同类型的资源。
 type ResourceKind int
 
 const (
-	// LeaderKind indicates the leader kind resource
+	// LeaderKind 表示 leader 类型资源
 	LeaderKind ResourceKind = iota
-	// RegionKind indicates the region kind resource
+	// RegionKind 表示 region 类型资源
 	RegionKind
 )
 

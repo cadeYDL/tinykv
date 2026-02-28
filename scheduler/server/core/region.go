@@ -25,8 +25,8 @@ import (
 	"github.com/pingcap-incubator/tinykv/proto/pkg/schedulerpb"
 )
 
-// RegionInfo records detail region info.
-// Read-Only once created.
+// RegionInfo 记录 region 的详细信息。
+// 创建后只读。
 type RegionInfo struct {
 	meta            *metapb.Region
 	learners        []*metapb.Peer
@@ -36,7 +36,7 @@ type RegionInfo struct {
 	approximateSize int64
 }
 
-// NewRegionInfo creates RegionInfo with region's meta and leader peer.
+// NewRegionInfo 使用 region 的元数据和 leader peer 创建 RegionInfo。
 func NewRegionInfo(region *metapb.Region, leader *metapb.Peer, opts ...RegionCreateOption) *RegionInfo {
 	regionInfo := &RegionInfo{
 		meta:   region,
@@ -50,7 +50,7 @@ func NewRegionInfo(region *metapb.Region, leader *metapb.Peer, opts ...RegionCre
 	return regionInfo
 }
 
-// classifyVoterAndLearner sorts out voter and learner from peers into different slice.
+// classifyVoterAndLearner 将 peer 中的 voter 和 learner 分类到不同的切片中。
 func classifyVoterAndLearner(region *RegionInfo) {
 	voters := make([]*metapb.Peer, 0, len(region.meta.Peers))
 	for _, p := range region.meta.Peers {
@@ -59,14 +59,14 @@ func classifyVoterAndLearner(region *RegionInfo) {
 	region.voters = voters
 }
 
-// EmptyRegionApproximateSize is the region approximate size of an empty region
-// (heartbeat size <= 1MB).
+// EmptyRegionApproximateSize 是空 region 的近似大小
+// （心跳大小 <= 1MB）。
 const EmptyRegionApproximateSize = 1
 
-// RegionFromHeartbeat constructs a Region from region heartbeat.
+// RegionFromHeartbeat 从 region 心跳构造一个 Region。
 func RegionFromHeartbeat(heartbeat *schedulerpb.RegionHeartbeatRequest) *RegionInfo {
-	// Convert unit to MB.
-	// If region is empty or less than 1MB, use 1MB instead.
+	// 将单位转换为 MB。
+	// 如果 region 为空或小于 1MB，则使用 1MB。
 	regionSize := heartbeat.GetApproximateSize() / (1 << 20)
 	if regionSize < EmptyRegionApproximateSize {
 		regionSize = EmptyRegionApproximateSize
@@ -83,7 +83,7 @@ func RegionFromHeartbeat(heartbeat *schedulerpb.RegionHeartbeatRequest) *RegionI
 	return region
 }
 
-// Clone returns a copy of current regionInfo.
+// Clone 返回当前 regionInfo 的副本。
 func (r *RegionInfo) Clone(opts ...RegionCreateOption) *RegionInfo {
 	pendingPeers := make([]*metapb.Peer, 0, len(r.pendingPeers))
 	for _, peer := range r.pendingPeers {
@@ -104,17 +104,17 @@ func (r *RegionInfo) Clone(opts ...RegionCreateOption) *RegionInfo {
 	return region
 }
 
-// GetLearners returns the learners.
+// GetLearners 返回 learner 列表。
 func (r *RegionInfo) GetLearners() []*metapb.Peer {
 	return r.learners
 }
 
-// GetVoters returns the voters.
+// GetVoters 返回 voter 列表。
 func (r *RegionInfo) GetVoters() []*metapb.Peer {
 	return r.voters
 }
 
-// GetPeer returns the peer with specified peer id.
+// GetPeer 返回具有指定 peer id 的 peer。
 func (r *RegionInfo) GetPeer(peerID uint64) *metapb.Peer {
 	for _, peer := range r.meta.GetPeers() {
 		if peer.GetId() == peerID {
@@ -124,12 +124,12 @@ func (r *RegionInfo) GetPeer(peerID uint64) *metapb.Peer {
 	return nil
 }
 
-// GetDownLearner returns the down learner with soecified peer id.
+// GetDownLearner 返回具有指定 peer id 的宕机 learner。
 func (r *RegionInfo) GetDownLearner(peerID uint64) *metapb.Peer {
 	return nil
 }
 
-// GetPendingPeer returns the pending peer with specified peer id.
+// GetPendingPeer 返回具有指定 peer id 的 pending peer。
 func (r *RegionInfo) GetPendingPeer(peerID uint64) *metapb.Peer {
 	for _, peer := range r.pendingPeers {
 		if peer.GetId() == peerID {
@@ -139,7 +139,7 @@ func (r *RegionInfo) GetPendingPeer(peerID uint64) *metapb.Peer {
 	return nil
 }
 
-// GetPendingVoter returns the pending voter with specified peer id.
+// GetPendingVoter 返回具有指定 peer id 的 pending voter。
 func (r *RegionInfo) GetPendingVoter(peerID uint64) *metapb.Peer {
 	for _, peer := range r.pendingPeers {
 		if peer.GetId() == peerID {
@@ -149,12 +149,12 @@ func (r *RegionInfo) GetPendingVoter(peerID uint64) *metapb.Peer {
 	return nil
 }
 
-// GetPendingLearner returns the pending learner peer with specified peer id.
+// GetPendingLearner 返回具有指定 peer id 的 pending learner peer。
 func (r *RegionInfo) GetPendingLearner(peerID uint64) *metapb.Peer {
 	return nil
 }
 
-// GetStorePeer returns the peer in specified store.
+// GetStorePeer 返回指定 store 中的 peer。
 func (r *RegionInfo) GetStorePeer(storeID uint64) *metapb.Peer {
 	for _, peer := range r.meta.GetPeers() {
 		if peer.GetStoreId() == storeID {
@@ -164,7 +164,7 @@ func (r *RegionInfo) GetStorePeer(storeID uint64) *metapb.Peer {
 	return nil
 }
 
-// GetStoreVoter returns the voter in specified store.
+// GetStoreVoter 返回指定 store 中的 voter。
 func (r *RegionInfo) GetStoreVoter(storeID uint64) *metapb.Peer {
 	for _, peer := range r.voters {
 		if peer.GetStoreId() == storeID {
@@ -174,7 +174,7 @@ func (r *RegionInfo) GetStoreVoter(storeID uint64) *metapb.Peer {
 	return nil
 }
 
-// GetStoreLearner returns the learner peer in specified store.
+// GetStoreLearner 返回指定 store 中的 learner peer。
 func (r *RegionInfo) GetStoreLearner(storeID uint64) *metapb.Peer {
 	for _, peer := range r.learners {
 		if peer.GetStoreId() == storeID {
@@ -184,7 +184,7 @@ func (r *RegionInfo) GetStoreLearner(storeID uint64) *metapb.Peer {
 	return nil
 }
 
-// GetStoreIds returns a map indicate the region distributed.
+// GetStoreIds 返回一个 map 表示 region 的分布情况。
 func (r *RegionInfo) GetStoreIds() map[uint64]struct{} {
 	peers := r.meta.GetPeers()
 	stores := make(map[uint64]struct{}, len(peers))
@@ -194,7 +194,7 @@ func (r *RegionInfo) GetStoreIds() map[uint64]struct{} {
 	return stores
 }
 
-// GetFollowers returns a map indicate the follow peers distributed.
+// GetFollowers 返回一个 map 表示 follower peer 的分布情况。
 func (r *RegionInfo) GetFollowers() map[uint64]*metapb.Peer {
 	peers := r.GetVoters()
 	followers := make(map[uint64]*metapb.Peer, len(peers))
@@ -206,7 +206,7 @@ func (r *RegionInfo) GetFollowers() map[uint64]*metapb.Peer {
 	return followers
 }
 
-// GetFollower randomly returns a follow peer.
+// GetFollower 随机返回一个 follower peer。
 func (r *RegionInfo) GetFollower() *metapb.Peer {
 	for _, peer := range r.GetVoters() {
 		if r.leader == nil || r.leader.GetId() != peer.GetId() {
@@ -216,8 +216,7 @@ func (r *RegionInfo) GetFollower() *metapb.Peer {
 	return nil
 }
 
-// GetDiffFollowers returns the followers which is not located in the same
-// store as any other followers of the another specified region.
+// GetDiffFollowers 返回不与另一个指定 region 的任何 follower 位于同一 store 的 follower。
 func (r *RegionInfo) GetDiffFollowers(other *RegionInfo) []*metapb.Peer {
 	res := make([]*metapb.Peer, 0, len(r.meta.Peers))
 	for _, p := range r.GetFollowers() {
@@ -235,52 +234,52 @@ func (r *RegionInfo) GetDiffFollowers(other *RegionInfo) []*metapb.Peer {
 	return res
 }
 
-// GetID returns the ID of the region.
+// GetID 返回 region 的 ID。
 func (r *RegionInfo) GetID() uint64 {
 	return r.meta.GetId()
 }
 
-// GetMeta returns the meta information of the region.
+// GetMeta 返回 region 的元信息。
 func (r *RegionInfo) GetMeta() *metapb.Region {
 	return r.meta
 }
 
-// GetApproximateSize returns the approximate size of the region.
+// GetApproximateSize 返回 region 的近似大小。
 func (r *RegionInfo) GetApproximateSize() int64 {
 	return r.approximateSize
 }
 
-// GetPendingPeers returns the pending peers of the region.
+// GetPendingPeers 返回 region 的 pending peer 列表。
 func (r *RegionInfo) GetPendingPeers() []*metapb.Peer {
 	return r.pendingPeers
 }
 
-// GetLeader returns the leader of the region.
+// GetLeader 返回 region 的 leader。
 func (r *RegionInfo) GetLeader() *metapb.Peer {
 	return r.leader
 }
 
-// GetStartKey returns the start key of the region.
+// GetStartKey 返回 region 的起始 key。
 func (r *RegionInfo) GetStartKey() []byte {
 	return r.meta.StartKey
 }
 
-// GetEndKey returns the end key of the region.
+// GetEndKey 返回 region 的结束 key。
 func (r *RegionInfo) GetEndKey() []byte {
 	return r.meta.EndKey
 }
 
-// GetPeers returns the peers of the region.
+// GetPeers 返回 region 的 peer 列表。
 func (r *RegionInfo) GetPeers() []*metapb.Peer {
 	return r.meta.GetPeers()
 }
 
-// GetRegionEpoch returns the region epoch of the region.
+// GetRegionEpoch 返回 region 的 epoch。
 func (r *RegionInfo) GetRegionEpoch() *metapb.RegionEpoch {
 	return r.meta.RegionEpoch
 }
 
-// regionMap wraps a map[uint64]*core.RegionInfo and supports randomly pick a region.
+// regionMap 封装 map[uint64]*core.RegionInfo 并支持随机选择一个 region。
 type regionMap struct {
 	m         map[uint64]*RegionInfo
 	totalSize int64
@@ -335,7 +334,7 @@ func (rm *regionMap) TotalSize() int64 {
 	return rm.totalSize
 }
 
-// regionSubTree is used to manager different types of regions.
+// regionSubTree 用于管理不同类型的 region。
 type regionSubTree struct {
 	*regionTree
 	totalSize int64
@@ -398,7 +397,7 @@ func (rst *regionSubTree) RandomRegion(startKey, endKey []byte) *RegionInfo {
 	return rst.regionTree.RandomRegion(startKey, endKey)
 }
 
-// RegionsInfo for export
+// RegionsInfo 用于导出
 type RegionsInfo struct {
 	tree         *regionTree
 	regions      *regionMap                // regionID -> regionInfo
@@ -408,7 +407,7 @@ type RegionsInfo struct {
 	pendingPeers map[uint64]*regionSubTree // storeID -> regionSubTree
 }
 
-// NewRegionsInfo creates RegionsInfo with tree, regions, leaders and followers
+// NewRegionsInfo 创建包含 tree、regions、leaders 和 followers 的 RegionsInfo
 func NewRegionsInfo() *RegionsInfo {
 	return &RegionsInfo{
 		tree:         newRegionTree(),
@@ -420,7 +419,7 @@ func NewRegionsInfo() *RegionsInfo {
 	}
 }
 
-// GetRegion returns the RegionInfo with regionID
+// GetRegion 通过 regionID 返回 RegionInfo
 func (r *RegionsInfo) GetRegion(regionID uint64) *RegionInfo {
 	region := r.regions.Get(regionID)
 	if region == nil {
@@ -429,7 +428,7 @@ func (r *RegionsInfo) GetRegion(regionID uint64) *RegionInfo {
 	return region
 }
 
-// SetRegion sets the RegionInfo with regionID
+// SetRegion 通过 regionID 设置 RegionInfo
 func (r *RegionsInfo) SetRegion(region *RegionInfo) []*RegionInfo {
 	if origin := r.regions.Get(region.GetID()); origin != nil {
 		r.RemoveRegion(origin)
@@ -437,24 +436,24 @@ func (r *RegionsInfo) SetRegion(region *RegionInfo) []*RegionInfo {
 	return r.AddRegion(region)
 }
 
-// Length returns the RegionsInfo length
+// Length 返回 RegionsInfo 的长度
 func (r *RegionsInfo) Length() int {
 	return r.regions.Len()
 }
 
-// TreeLength returns the RegionsInfo tree length(now only used in test)
+// TreeLength 返回 RegionsInfo tree 的长度（目前仅用于测试）
 func (r *RegionsInfo) TreeLength() int {
 	return r.tree.length()
 }
 
-// GetOverlaps returns the regions which are overlapped with the specified region range.
+// GetOverlaps 返回与指定 region 范围重叠的 region。
 func (r *RegionsInfo) GetOverlaps(region *RegionInfo) []*RegionInfo {
 	return r.tree.getOverlaps(region)
 }
 
-// AddRegion adds RegionInfo to regionTree and regionMap, also update leaders and followers by region peers
+// AddRegion 将 RegionInfo 添加到 regionTree 和 regionMap，同时根据 region peer 更新 leaders 和 followers
 func (r *RegionsInfo) AddRegion(region *RegionInfo) []*RegionInfo {
-	// Add to tree and regions.
+	// 添加到 tree 和 regions。
 	overlaps := r.tree.update(region)
 	for _, item := range overlaps {
 		r.RemoveRegion(r.GetRegion(item.GetID()))
@@ -462,11 +461,11 @@ func (r *RegionsInfo) AddRegion(region *RegionInfo) []*RegionInfo {
 
 	r.regions.Put(region)
 
-	// Add to leaders and followers.
+	// 添加到 leaders 和 followers。
 	for _, peer := range region.GetVoters() {
 		storeID := peer.GetStoreId()
 		if peer.GetId() == region.leader.GetId() {
-			// Add leader peer to leaders.
+			// 将 leader peer 添加到 leaders。
 			store, ok := r.leaders[storeID]
 			if !ok {
 				store = newRegionSubTree()
@@ -474,7 +473,7 @@ func (r *RegionsInfo) AddRegion(region *RegionInfo) []*RegionInfo {
 			}
 			store.update(region)
 		} else {
-			// Add follower peer to followers.
+			// 将 follower peer 添加到 followers。
 			store, ok := r.followers[storeID]
 			if !ok {
 				store = newRegionSubTree()
@@ -484,7 +483,7 @@ func (r *RegionsInfo) AddRegion(region *RegionInfo) []*RegionInfo {
 		}
 	}
 
-	// Add to learners.
+	// 添加到 learners。
 	for _, peer := range region.GetLearners() {
 		storeID := peer.GetStoreId()
 		store, ok := r.learners[storeID]
@@ -508,12 +507,12 @@ func (r *RegionsInfo) AddRegion(region *RegionInfo) []*RegionInfo {
 	return overlaps
 }
 
-// RemoveRegion removes RegionInfo from regionTree and regionMap
+// RemoveRegion 从 regionTree 和 regionMap 中移除 RegionInfo
 func (r *RegionsInfo) RemoveRegion(region *RegionInfo) {
-	// Remove from tree and regions.
+	// 从 tree 和 regions 中移除。
 	r.tree.remove(region)
 	r.regions.Delete(region.GetID())
-	// Remove from leaders and followers.
+	// 从 leaders 和 followers 中移除。
 	for _, peer := range region.meta.GetPeers() {
 		storeID := peer.GetStoreId()
 		r.leaders[storeID].remove(region)
@@ -523,7 +522,7 @@ func (r *RegionsInfo) RemoveRegion(region *RegionInfo) {
 	}
 }
 
-// SearchRegion searches RegionInfo from regionTree
+// SearchRegion 从 regionTree 中搜索 RegionInfo
 func (r *RegionsInfo) SearchRegion(regionKey []byte) *RegionInfo {
 	region := r.tree.search(regionKey)
 	if region == nil {
@@ -532,7 +531,7 @@ func (r *RegionsInfo) SearchRegion(regionKey []byte) *RegionInfo {
 	return r.GetRegion(region.GetID())
 }
 
-// SearchPrevRegion searches previous RegionInfo from regionTree
+// SearchPrevRegion 从 regionTree 中搜索前一个 RegionInfo
 func (r *RegionsInfo) SearchPrevRegion(regionKey []byte) *RegionInfo {
 	region := r.tree.searchPrev(regionKey)
 	if region == nil {
@@ -541,7 +540,7 @@ func (r *RegionsInfo) SearchPrevRegion(regionKey []byte) *RegionInfo {
 	return r.GetRegion(region.GetID())
 }
 
-// GetRegions gets all RegionInfo from regionMap
+// GetRegions 从 regionMap 获取所有 RegionInfo
 func (r *RegionsInfo) GetRegions() []*RegionInfo {
 	regions := make([]*RegionInfo, 0, r.regions.Len())
 	for _, region := range r.regions.m {
@@ -550,7 +549,7 @@ func (r *RegionsInfo) GetRegions() []*RegionInfo {
 	return regions
 }
 
-// GetStoreRegions gets all RegionInfo with a given storeID
+// GetStoreRegions 获取给定 storeID 的所有 RegionInfo
 func (r *RegionsInfo) GetStoreRegions(storeID uint64) []*RegionInfo {
 	regions := make([]*RegionInfo, 0, r.GetStoreLeaderCount(storeID)+r.GetStoreFollowerCount(storeID))
 	if leaders, ok := r.leaders[storeID]; ok {
@@ -566,27 +565,27 @@ func (r *RegionsInfo) GetStoreRegions(storeID uint64) []*RegionInfo {
 	return regions
 }
 
-// GetStoreLeaderRegionSize gets total size of store's leader regions
+// GetStoreLeaderRegionSize 获取 store 的 leader region 总大小
 func (r *RegionsInfo) GetStoreLeaderRegionSize(storeID uint64) int64 {
 	return r.leaders[storeID].TotalSize()
 }
 
-// GetStoreFollowerRegionSize gets total size of store's follower regions
+// GetStoreFollowerRegionSize 获取 store 的 follower region 总大小
 func (r *RegionsInfo) GetStoreFollowerRegionSize(storeID uint64) int64 {
 	return r.followers[storeID].TotalSize()
 }
 
-// GetStoreLearnerRegionSize gets total size of store's learner regions
+// GetStoreLearnerRegionSize 获取 store 的 learner region 总大小
 func (r *RegionsInfo) GetStoreLearnerRegionSize(storeID uint64) int64 {
 	return r.learners[storeID].TotalSize()
 }
 
-// GetStoreRegionSize gets total size of store's regions
+// GetStoreRegionSize 获取 store 的 region 总大小
 func (r *RegionsInfo) GetStoreRegionSize(storeID uint64) int64 {
 	return r.GetStoreLeaderRegionSize(storeID) + r.GetStoreFollowerRegionSize(storeID) + r.GetStoreLearnerRegionSize(storeID)
 }
 
-// GetMetaRegions gets a set of metapb.Region from regionMap
+// GetMetaRegions 从 regionMap 获取 metapb.Region 集合
 func (r *RegionsInfo) GetMetaRegions() []*metapb.Region {
 	regions := make([]*metapb.Region, 0, r.regions.Len())
 	for _, region := range r.regions.m {
@@ -595,83 +594,83 @@ func (r *RegionsInfo) GetMetaRegions() []*metapb.Region {
 	return regions
 }
 
-// GetRegionCount gets the total count of RegionInfo of regionMap
+// GetRegionCount 获取 regionMap 中 RegionInfo 的总数
 func (r *RegionsInfo) GetRegionCount() int {
 	return r.regions.Len()
 }
 
-// GetStoreRegionCount gets the total count of a store's leader and follower RegionInfo by storeID
+// GetStoreRegionCount 通过 storeID 获取 store 的 leader 和 follower RegionInfo 总数
 func (r *RegionsInfo) GetStoreRegionCount(storeID uint64) int {
 	return r.GetStoreLeaderCount(storeID) + r.GetStoreFollowerCount(storeID) + r.GetStoreLearnerCount(storeID)
 }
 
-// GetStorePendingPeerCount gets the total count of a store's region that includes pending peer
+// GetStorePendingPeerCount 获取包含 pending peer 的 store region 总数
 func (r *RegionsInfo) GetStorePendingPeerCount(storeID uint64) int {
 	return r.pendingPeers[storeID].length()
 }
 
-// GetStoreLeaderCount gets the total count of a store's leader RegionInfo
+// GetStoreLeaderCount 获取 store 的 leader RegionInfo 总数
 func (r *RegionsInfo) GetStoreLeaderCount(storeID uint64) int {
 	return r.leaders[storeID].length()
 }
 
-// GetStoreFollowerCount gets the total count of a store's follower RegionInfo
+// GetStoreFollowerCount 获取 store 的 follower RegionInfo 总数
 func (r *RegionsInfo) GetStoreFollowerCount(storeID uint64) int {
 	return r.followers[storeID].length()
 }
 
-// GetStoreLearnerCount gets the total count of a store's learner RegionInfo
+// GetStoreLearnerCount 获取 store 的 learner RegionInfo 总数
 func (r *RegionsInfo) GetStoreLearnerCount(storeID uint64) int {
 	return r.learners[storeID].length()
 }
 
-// RandRegion gets a region by random
+// RandRegion 随机获取一个 region
 func (r *RegionsInfo) RandRegion(opts ...RegionOption) *RegionInfo {
 	return randRegion(r.tree, opts...)
 }
 
-// RandPendingRegion randomly gets a store's region with a pending peer.
+// RandPendingRegion 随机获取 store 中包含 pending peer 的 region。
 func (r *RegionsInfo) RandPendingRegion(storeID uint64, opts ...RegionOption) *RegionInfo {
 	return randRegion(r.pendingPeers[storeID], opts...)
 }
 
-// RandLeaderRegion randomly gets a store's leader region.
+// RandLeaderRegion 随机获取 store 的 leader region。
 func (r *RegionsInfo) RandLeaderRegion(storeID uint64, opts ...RegionOption) *RegionInfo {
 	return randRegion(r.leaders[storeID], opts...)
 }
 
-// RandFollowerRegion randomly gets a store's follower region.
+// RandFollowerRegion 随机获取 store 的 follower region。
 func (r *RegionsInfo) RandFollowerRegion(storeID uint64, opts ...RegionOption) *RegionInfo {
 	return randRegion(r.followers[storeID], opts...)
 }
 
-// GetPendingRegionsWithLock returns pending regions subtree by storeID
+// GetPendingRegionsWithLock 通过 storeID 返回 pending region 子树
 func (r *RegionsInfo) GetPendingRegionsWithLock(storeID uint64, callback func(RegionsContainer)) {
 	callback(r.pendingPeers[storeID])
 }
 
-// GetLeadersWithLock returns leaders subtree by storeID
+// GetLeadersWithLock 通过 storeID 返回 leader 子树
 func (r *RegionsInfo) GetLeadersWithLock(storeID uint64, callback func(RegionsContainer)) {
 	callback(r.leaders[storeID])
 }
 
-// GetFollowersWithLock returns followers subtree by storeID
+// GetFollowersWithLock 通过 storeID 返回 follower 子树
 func (r *RegionsInfo) GetFollowersWithLock(storeID uint64, callback func(RegionsContainer)) {
 	callback(r.followers[storeID])
 }
 
-// GetLeader returns leader RegionInfo by storeID and regionID(now only used in test)
+// GetLeader 通过 storeID 和 regionID 返回 leader RegionInfo（目前仅用于测试）
 func (r *RegionsInfo) GetLeader(storeID uint64, region *RegionInfo) *RegionInfo {
 	return r.leaders[storeID].find(region).region
 }
 
-// GetFollower returns follower RegionInfo by storeID and regionID(now only used in test)
+// GetFollower 通过 storeID 和 regionID 返回 follower RegionInfo（目前仅用于测试）
 func (r *RegionsInfo) GetFollower(storeID uint64, region *RegionInfo) *RegionInfo {
 	return r.followers[storeID].find(region).region
 }
 
-// ScanRange scans regions intersecting [start key, end key), returns at most
-// `limit` regions. limit <= 0 means no limit.
+// ScanRange 扫描与 [start key, end key) 相交的 region，最多返回 `limit` 个 region。
+// limit <= 0 表示没有限制。
 func (r *RegionsInfo) ScanRange(startKey, endKey []byte, limit int) []*RegionInfo {
 	var res []*RegionInfo
 	r.tree.scanRange(startKey, func(region *RegionInfo) bool {
@@ -687,7 +686,7 @@ func (r *RegionsInfo) ScanRange(startKey, endKey []byte, limit int) []*RegionInf
 	return res
 }
 
-// GetAverageRegionSize returns the average region approximate size.
+// GetAverageRegionSize 返回 region 的平均近似大小。
 func (r *RegionsInfo) GetAverageRegionSize() int64 {
 	if r.regions.Len() == 0 {
 		return 0
@@ -697,7 +696,7 @@ func (r *RegionsInfo) GetAverageRegionSize() int64 {
 
 const randomRegionMaxRetry = 10
 
-// RegionsContainer is a container to store regions.
+// RegionsContainer 是存储 region 的容器。
 type RegionsContainer interface {
 	RandomRegion(startKey, endKey []byte) *RegionInfo
 }
@@ -722,7 +721,7 @@ func randRegion(regions RegionsContainer, opts ...RegionOption) *RegionInfo {
 	return nil
 }
 
-// DiffRegionPeersInfo returns the difference of peers info between two RegionInfo
+// DiffRegionPeersInfo 返回两个 RegionInfo 之间 peer 信息的差异
 func DiffRegionPeersInfo(origin *RegionInfo, other *RegionInfo) string {
 	var ret []string
 	for _, a := range origin.meta.Peers {
@@ -752,7 +751,7 @@ func DiffRegionPeersInfo(origin *RegionInfo, other *RegionInfo) string {
 	return strings.Join(ret, ",")
 }
 
-// DiffRegionKeyInfo returns the difference of key info between two RegionInfo
+// DiffRegionKeyInfo 返回两个 RegionInfo 之间 key 信息的差异
 func DiffRegionKeyInfo(origin *RegionInfo, other *RegionInfo) string {
 	var ret []string
 	if !bytes.Equal(origin.meta.StartKey, other.meta.StartKey) {
@@ -769,14 +768,12 @@ func DiffRegionKeyInfo(origin *RegionInfo, other *RegionInfo) string {
 	return strings.Join(ret, ", ")
 }
 
-// HexRegionKey converts region key to hex format. Used for formating region in
-// logs.
+// HexRegionKey 将 region key 转换为十六进制格式。用于在日志中格式化 region。
 func HexRegionKey(key []byte) []byte {
 	return []byte(strings.ToUpper(hex.EncodeToString(key)))
 }
 
-// RegionToHexMeta converts a region meta's keys to hex format. Used for formating
-// region in logs.
+// RegionToHexMeta 将 region 元数据的 key 转换为十六进制格式。用于在日志中格式化 region。
 func RegionToHexMeta(meta *metapb.Region) HexRegionMeta {
 	if meta == nil {
 		return HexRegionMeta{}
@@ -787,7 +784,7 @@ func RegionToHexMeta(meta *metapb.Region) HexRegionMeta {
 	return HexRegionMeta{meta}
 }
 
-// HexRegionMeta is a region meta in the hex format. Used for formating region in logs.
+// HexRegionMeta 是十六进制格式的 region 元数据。用于在日志中格式化 region。
 type HexRegionMeta struct {
 	*metapb.Region
 }
@@ -796,8 +793,7 @@ func (h HexRegionMeta) String() string {
 	return strings.TrimSpace(proto.CompactTextString(h.Region))
 }
 
-// RegionsToHexMeta converts regions' meta keys to hex format. Used for formating
-// region in logs.
+// RegionsToHexMeta 将多个 region 的元数据 key 转换为十六进制格式。用于在日志中格式化 region。
 func RegionsToHexMeta(regions []*metapb.Region) HexRegionsMeta {
 	hexRegionMetas := make([]*metapb.Region, len(regions))
 	for i, region := range regions {
@@ -810,8 +806,7 @@ func RegionsToHexMeta(regions []*metapb.Region) HexRegionsMeta {
 	return HexRegionsMeta(hexRegionMetas)
 }
 
-// HexRegionsMeta is a slice of regions' meta in the hex format. Used for formating
-// region in logs.
+// HexRegionsMeta 是十六进制格式的 region 元数据切片。用于在日志中格式化 region。
 type HexRegionsMeta []*metapb.Region
 
 func (h HexRegionsMeta) String() string {

@@ -19,14 +19,14 @@ import (
 	"github.com/pingcap-incubator/tinykv/proto/pkg/metapb"
 )
 
-// BasicCluster provides basic data member and interface for a tikv cluster.
+// BasicCluster 为 tikv 集群提供基本数据成员和接口。
 type BasicCluster struct {
 	sync.RWMutex
 	Stores  *StoresInfo
 	Regions *RegionsInfo
 }
 
-// NewBasicCluster creates a BasicCluster.
+// NewBasicCluster 创建一个 BasicCluster。
 func NewBasicCluster() *BasicCluster {
 	return &BasicCluster{
 		Stores:  NewStoresInfo(),
@@ -34,56 +34,56 @@ func NewBasicCluster() *BasicCluster {
 	}
 }
 
-// GetStores returns all Stores in the cluster.
+// GetStores 返回集群中的所有 Store。
 func (bc *BasicCluster) GetStores() []*StoreInfo {
 	bc.RLock()
 	defer bc.RUnlock()
 	return bc.Stores.GetStores()
 }
 
-// GetMetaStores gets a complete set of metapb.Store.
+// GetMetaStores 获取完整的 metapb.Store 集合。
 func (bc *BasicCluster) GetMetaStores() []*metapb.Store {
 	bc.RLock()
 	defer bc.RUnlock()
 	return bc.Stores.GetMetaStores()
 }
 
-// GetStore searches for a store by ID.
+// GetStore 通过 ID 搜索 store。
 func (bc *BasicCluster) GetStore(storeID uint64) *StoreInfo {
 	bc.RLock()
 	defer bc.RUnlock()
 	return bc.Stores.GetStore(storeID)
 }
 
-// GetRegion searches for a region by ID.
+// GetRegion 通过 ID 搜索 region。
 func (bc *BasicCluster) GetRegion(regionID uint64) *RegionInfo {
 	bc.RLock()
 	defer bc.RUnlock()
 	return bc.Regions.GetRegion(regionID)
 }
 
-// GetRegions gets all RegionInfo from regionMap.
+// GetRegions 从 regionMap 获取所有 RegionInfo。
 func (bc *BasicCluster) GetRegions() []*RegionInfo {
 	bc.RLock()
 	defer bc.RUnlock()
 	return bc.Regions.GetRegions()
 }
 
-// GetMetaRegions gets a set of metapb.Region from regionMap.
+// GetMetaRegions 从 regionMap 获取 metapb.Region 集合。
 func (bc *BasicCluster) GetMetaRegions() []*metapb.Region {
 	bc.RLock()
 	defer bc.RUnlock()
 	return bc.Regions.GetMetaRegions()
 }
 
-// GetStoreRegions gets all RegionInfo with a given storeID.
+// GetStoreRegions 获取给定 storeID 的所有 RegionInfo。
 func (bc *BasicCluster) GetStoreRegions(storeID uint64) []*RegionInfo {
 	bc.RLock()
 	defer bc.RUnlock()
 	return bc.Regions.GetStoreRegions(storeID)
 }
 
-// GetRegionStores returns all Stores that contains the region's peer.
+// GetRegionStores 返回包含 region peer 的所有 Store。
 func (bc *BasicCluster) GetRegionStores(region *RegionInfo) []*StoreInfo {
 	bc.RLock()
 	defer bc.RUnlock()
@@ -96,7 +96,7 @@ func (bc *BasicCluster) GetRegionStores(region *RegionInfo) []*StoreInfo {
 	return Stores
 }
 
-// GetFollowerStores returns all Stores that contains the region's follower peer.
+// GetFollowerStores 返回包含 region follower peer 的所有 Store。
 func (bc *BasicCluster) GetFollowerStores(region *RegionInfo) []*StoreInfo {
 	bc.RLock()
 	defer bc.RUnlock()
@@ -109,218 +109,218 @@ func (bc *BasicCluster) GetFollowerStores(region *RegionInfo) []*StoreInfo {
 	return Stores
 }
 
-// GetLeaderStore returns all Stores that contains the region's leader peer.
+// GetLeaderStore 返回包含 region leader peer 的 Store。
 func (bc *BasicCluster) GetLeaderStore(region *RegionInfo) *StoreInfo {
 	bc.RLock()
 	defer bc.RUnlock()
 	return bc.Stores.GetStore(region.GetLeader().GetStoreId())
 }
 
-// BlockStore stops balancer from selecting the store.
+// BlockStore 阻止负载均衡器选择该 store。
 func (bc *BasicCluster) BlockStore(storeID uint64) error {
 	bc.Lock()
 	defer bc.Unlock()
 	return bc.Stores.BlockStore(storeID)
 }
 
-// UnblockStore allows balancer to select the store.
+// UnblockStore 允许负载均衡器选择该 store。
 func (bc *BasicCluster) UnblockStore(storeID uint64) {
 	bc.Lock()
 	defer bc.Unlock()
 	bc.Stores.UnblockStore(storeID)
 }
 
-// AttachAvailableFunc attaches an available function to a specific store.
+// AttachAvailableFunc 将可用函数附加到特定 store。
 func (bc *BasicCluster) AttachAvailableFunc(storeID uint64, f func() bool) {
 	bc.Lock()
 	defer bc.Unlock()
 	bc.Stores.AttachAvailableFunc(storeID, f)
 }
 
-// UpdateStoreStatus updates the information of the store.
+// UpdateStoreStatus 更新 store 的信息。
 func (bc *BasicCluster) UpdateStoreStatus(storeID uint64, leaderCount int, regionCount int, pendingPeerCount int, leaderSize int64, regionSize int64) {
 	bc.Lock()
 	defer bc.Unlock()
 	bc.Stores.UpdateStoreStatus(storeID, leaderCount, regionCount, pendingPeerCount, leaderSize, regionSize)
 }
 
-// RandFollowerRegion returns a random region that has a follower on the store.
+// RandFollowerRegion 返回在该 store 上有 follower 的随机 region。
 func (bc *BasicCluster) RandFollowerRegion(storeID uint64, opts ...RegionOption) *RegionInfo {
 	bc.RLock()
 	defer bc.RUnlock()
 	return bc.Regions.RandFollowerRegion(storeID, opts...)
 }
 
-// RandLeaderRegion returns a random region that has leader on the store.
+// RandLeaderRegion 返回在该 store 上有 leader 的随机 region。
 func (bc *BasicCluster) RandLeaderRegion(storeID uint64, opts ...RegionOption) *RegionInfo {
 	bc.RLock()
 	defer bc.RUnlock()
 	return bc.Regions.RandLeaderRegion(storeID, opts...)
 }
 
-// RandPendingRegion returns a random region that has a pending peer on the store.
+// RandPendingRegion 返回在该 store 上有 pending peer 的随机 region。
 func (bc *BasicCluster) RandPendingRegion(storeID uint64, opts ...RegionOption) *RegionInfo {
 	bc.RLock()
 	defer bc.RUnlock()
 	return bc.Regions.RandPendingRegion(storeID, opts...)
 }
 
-// GetPendingRegionsWithLock return pending regions subtree by storeID
+// GetPendingRegionsWithLock 通过 storeID 返回 pending region 子树
 func (bc *BasicCluster) GetPendingRegionsWithLock(storeID uint64, callback func(RegionsContainer)) {
 	bc.RLock()
 	defer bc.RUnlock()
 	callback(bc.Regions.pendingPeers[storeID])
 }
 
-// GetLeadersWithLock return leaders subtree by storeID
+// GetLeadersWithLock 通过 storeID 返回 leader 子树
 func (bc *BasicCluster) GetLeadersWithLock(storeID uint64, callback func(RegionsContainer)) {
 	bc.RLock()
 	defer bc.RUnlock()
 	callback(bc.Regions.leaders[storeID])
 }
 
-// GetFollowersWithLock return leaders subtree by storeID
+// GetFollowersWithLock 通过 storeID 返回 follower 子树
 func (bc *BasicCluster) GetFollowersWithLock(storeID uint64, callback func(RegionsContainer)) {
 	bc.RLock()
 	defer bc.RUnlock()
 	callback(bc.Regions.followers[storeID])
 }
 
-// GetRegionCount gets the total count of RegionInfo of regionMap.
+// GetRegionCount 获取 regionMap 中 RegionInfo 的总数。
 func (bc *BasicCluster) GetRegionCount() int {
 	bc.RLock()
 	defer bc.RUnlock()
 	return bc.Regions.GetRegionCount()
 }
 
-// GetStoreCount returns the total count of storeInfo.
+// GetStoreCount 返回 storeInfo 的总数。
 func (bc *BasicCluster) GetStoreCount() int {
 	bc.RLock()
 	defer bc.RUnlock()
 	return bc.Stores.GetStoreCount()
 }
 
-// GetStoreRegionCount gets the total count of a store's leader and follower RegionInfo by storeID.
+// GetStoreRegionCount 通过 storeID 获取 store 的 leader 和 follower RegionInfo 总数。
 func (bc *BasicCluster) GetStoreRegionCount(storeID uint64) int {
 	bc.RLock()
 	defer bc.RUnlock()
 	return bc.Regions.GetStoreLeaderCount(storeID) + bc.Regions.GetStoreFollowerCount(storeID) + bc.Regions.GetStoreLearnerCount(storeID)
 }
 
-// GetStoreLeaderCount get the total count of a store's leader RegionInfo.
+// GetStoreLeaderCount 获取 store 的 leader RegionInfo 总数。
 func (bc *BasicCluster) GetStoreLeaderCount(storeID uint64) int {
 	bc.RLock()
 	defer bc.RUnlock()
 	return bc.Regions.GetStoreLeaderCount(storeID)
 }
 
-// GetStoreFollowerCount get the total count of a store's follower RegionInfo.
+// GetStoreFollowerCount 获取 store 的 follower RegionInfo 总数。
 func (bc *BasicCluster) GetStoreFollowerCount(storeID uint64) int {
 	bc.RLock()
 	defer bc.RUnlock()
 	return bc.Regions.GetStoreFollowerCount(storeID)
 }
 
-// GetStorePendingPeerCount gets the total count of a store's region that includes pending peer.
+// GetStorePendingPeerCount 获取包含 pending peer 的 store region 总数。
 func (bc *BasicCluster) GetStorePendingPeerCount(storeID uint64) int {
 	bc.RLock()
 	defer bc.RUnlock()
 	return bc.Regions.GetStorePendingPeerCount(storeID)
 }
 
-// GetStoreLeaderRegionSize get total size of store's leader regions.
+// GetStoreLeaderRegionSize 获取 store 的 leader region 总大小。
 func (bc *BasicCluster) GetStoreLeaderRegionSize(storeID uint64) int64 {
 	bc.RLock()
 	defer bc.RUnlock()
 	return bc.Regions.GetStoreLeaderRegionSize(storeID)
 }
 
-// GetStoreRegionSize get total size of store's regions.
+// GetStoreRegionSize 获取 store 的 region 总大小。
 func (bc *BasicCluster) GetStoreRegionSize(storeID uint64) int64 {
 	bc.RLock()
 	defer bc.RUnlock()
 	return bc.Regions.GetStoreLeaderRegionSize(storeID) + bc.Regions.GetStoreFollowerRegionSize(storeID) + bc.Regions.GetStoreLearnerRegionSize(storeID)
 }
 
-// GetAverageRegionSize returns the average region approximate size.
+// GetAverageRegionSize 返回 region 的平均近似大小。
 func (bc *BasicCluster) GetAverageRegionSize() int64 {
 	bc.RLock()
 	defer bc.RUnlock()
 	return bc.Regions.GetAverageRegionSize()
 }
 
-// PutStore put a store.
+// PutStore 放入一个 store。
 func (bc *BasicCluster) PutStore(store *StoreInfo) {
 	bc.Lock()
 	defer bc.Unlock()
 	bc.Stores.SetStore(store)
 }
 
-// DeleteStore deletes a store.
+// DeleteStore 删除一个 store。
 func (bc *BasicCluster) DeleteStore(store *StoreInfo) {
 	bc.Lock()
 	defer bc.Unlock()
 	bc.Stores.DeleteStore(store)
 }
 
-// TakeStore returns the point of the origin StoreInfo with the specified storeID.
+// TakeStore 返回具有指定 storeID 的原始 StoreInfo 的指针。
 func (bc *BasicCluster) TakeStore(storeID uint64) *StoreInfo {
 	bc.RLock()
 	defer bc.RUnlock()
 	return bc.Stores.TakeStore(storeID)
 }
 
-// PutRegion put a region.
+// PutRegion 放入一个 region。
 func (bc *BasicCluster) PutRegion(region *RegionInfo) []*RegionInfo {
 	bc.Lock()
 	defer bc.Unlock()
 	return bc.Regions.SetRegion(region)
 }
 
-// RemoveRegion removes RegionInfo from regionTree and regionMap.
+// RemoveRegion 从 regionTree 和 regionMap 中移除 RegionInfo。
 func (bc *BasicCluster) RemoveRegion(region *RegionInfo) {
 	bc.Lock()
 	defer bc.Unlock()
 	bc.Regions.RemoveRegion(region)
 }
 
-// SearchRegion searches RegionInfo from regionTree.
+// SearchRegion 从 regionTree 中搜索 RegionInfo。
 func (bc *BasicCluster) SearchRegion(regionKey []byte) *RegionInfo {
 	bc.RLock()
 	defer bc.RUnlock()
 	return bc.Regions.SearchRegion(regionKey)
 }
 
-// SearchPrevRegion searches previous RegionInfo from regionTree.
+// SearchPrevRegion 从 regionTree 中搜索前一个 RegionInfo。
 func (bc *BasicCluster) SearchPrevRegion(regionKey []byte) *RegionInfo {
 	bc.RLock()
 	defer bc.RUnlock()
 	return bc.Regions.SearchPrevRegion(regionKey)
 }
 
-// ScanRange scans regions intersecting [start key, end key), returns at most
-// `limit` regions. limit <= 0 means no limit.
+// ScanRange 扫描与 [start key, end key) 相交的 region，最多返回 `limit` 个 region。
+// limit <= 0 表示没有限制。
 func (bc *BasicCluster) ScanRange(startKey, endKey []byte, limit int) []*RegionInfo {
 	bc.RLock()
 	defer bc.RUnlock()
 	return bc.Regions.ScanRange(startKey, endKey, limit)
 }
 
-// GetOverlaps returns the regions which are overlapped with the specified region range.
+// GetOverlaps 返回与指定 region 范围重叠的 region。
 func (bc *BasicCluster) GetOverlaps(region *RegionInfo) []*RegionInfo {
 	bc.RLock()
 	defer bc.RUnlock()
 	return bc.Regions.GetOverlaps(region)
 }
 
-// Length returns the RegionsInfo length.
+// Length 返回 RegionsInfo 的长度。
 func (bc *BasicCluster) Length() int {
 	bc.RLock()
 	defer bc.RUnlock()
 	return bc.Regions.Length()
 }
 
-// RegionSetInformer provides access to a shared informer of regions.
+// RegionSetInformer 提供对 region 共享通知器的访问。
 type RegionSetInformer interface {
 	RandFollowerRegion(storeID uint64, opts ...RegionOption) *RegionInfo
 	RandLeaderRegion(storeID uint64, opts ...RegionOption) *RegionInfo
@@ -334,7 +334,7 @@ type RegionSetInformer interface {
 	ScanRegions(startKey, endKey []byte, limit int) []*RegionInfo
 }
 
-// StoreSetInformer provides access to a shared informer of stores.
+// StoreSetInformer 提供对 store 共享通知器的访问。
 type StoreSetInformer interface {
 	GetStores() []*StoreInfo
 	GetStore(id uint64) *StoreInfo
@@ -344,7 +344,7 @@ type StoreSetInformer interface {
 	GetLeaderStore(region *RegionInfo) *StoreInfo
 }
 
-// StoreSetController is used to control stores' status.
+// StoreSetController 用于控制 store 的状态。
 type StoreSetController interface {
 	BlockStore(id uint64) error
 	UnblockStore(id uint64)

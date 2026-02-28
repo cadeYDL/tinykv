@@ -11,10 +11,10 @@ option (gogoproto.sizer_all) = true;
 option (gogoproto.marshaler_all) = true;
 option (gogoproto.unmarshaler_all) = true;
 
-// Serve as a distributed kv database. See the request and response definitions in
+// 作为分布式 KV 数据库提供服务。请求和响应的定义见
 // kvrpcpb.proto
 service TinyKv {
-    // KV commands with mvcc/txn supported.
+    // 支持 mvcc/事务的 KV 命令。
     rpc KvGet(kvrpcpb.GetRequest) returns (kvrpcpb.GetResponse) {}
     rpc KvScan(kvrpcpb.ScanRequest) returns (kvrpcpb.ScanResponse) {}
     rpc KvPrewrite(kvrpcpb.PrewriteRequest) returns (kvrpcpb.PrewriteResponse) {}
@@ -23,16 +23,16 @@ service TinyKv {
     rpc KvBatchRollback(kvrpcpb.BatchRollbackRequest) returns (kvrpcpb.BatchRollbackResponse) {}
     rpc KvResolveLock(kvrpcpb.ResolveLockRequest) returns (kvrpcpb.ResolveLockResponse) {}
 
-    // RawKV commands.
+    // RawKV 命令。
     rpc RawGet(kvrpcpb.RawGetRequest) returns (kvrpcpb.RawGetResponse) {}
     rpc RawPut(kvrpcpb.RawPutRequest) returns (kvrpcpb.RawPutResponse) {}
     rpc RawDelete(kvrpcpb.RawDeleteRequest) returns (kvrpcpb.RawDeleteResponse) {}
     rpc RawScan(kvrpcpb.RawScanRequest) returns (kvrpcpb.RawScanResponse) {}
 
-    // Raft commands (tinykv <-> tinykv).
+    // Raft 命令（tinykv <-> tinykv）。
     rpc Raft(stream raft_serverpb.RaftMessage) returns (raft_serverpb.Done) {}
     rpc Snapshot(stream raft_serverpb.SnapshotChunk) returns (raft_serverpb.Done) {}
 
-    // Coprocessor 
+    // 协处理器
     rpc Coprocessor(coprocessor.Request) returns (coprocessor.Response) {}
 }

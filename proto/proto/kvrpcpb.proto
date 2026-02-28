@@ -9,7 +9,7 @@ option (gogoproto.marshaler_all) = true;
 option (gogoproto.sizer_all) = true;
 option (gogoproto.unmarshaler_all) = true;
 
-// Raw commands.
+// Raw 命令。
 message RawGetRequest {
     Context context = 1;
     bytes key = 2;
@@ -20,7 +20,7 @@ message RawGetResponse {
     errorpb.Error region_error = 1;
     string error = 2;
     bytes value = 3;
-    // True if the requested key doesn't exist; another error will not be signalled.
+    // 如果请求的 key 不存在则为 true；不会发出其他错误信号。
     bool not_found = 4;
 }
 
@@ -50,7 +50,7 @@ message RawDeleteResponse {
 message RawScanRequest {
     Context context = 1;
     bytes start_key = 2;
-    // The maximum number of values read.
+    // 读取的最大值数量。
     uint32 limit = 3;
     string cf = 4;
 
@@ -58,15 +58,15 @@ message RawScanRequest {
 
 message RawScanResponse {
     errorpb.Error region_error = 1;
-    // An error which affects the whole scan. Per-key errors are included in kvs.
+    // 影响整个扫描的错误。每个 key 的错误包含在 kvs 中。
     string error = 2;
     repeated KvPair kvs = 3;
 }
 
-// Transactional commands.
-// Note that "version" and "timestamp" are synonymous.
+// 事务命令。
+// 注意 "version" 和 "timestamp" 是同义词。
 
-// Read the value of a key at the given time.
+// 在给定时间读取 key 的值。
 message GetRequest {
     Context context = 1;
     bytes key = 2;
@@ -77,126 +77,119 @@ message GetResponse {
     errorpb.Error region_error = 1;
     KeyError error = 2;
     bytes value = 3;
-    // True if the requested key doesn't exist; another error will not be signalled.
+    // 如果请求的 key 不存在则为 true；不会发出其他错误信号。
     bool not_found = 4;
 }
 
-// Prewrite is the first phase of two phase commit. A prewrite commit contains all the
-// writes (mutations) which a client would like to make as part of a transaction. The
-// request succeeds if none of the keys are locked. In that case all those keys will
-// be locked. If the prewrite fails, no changes are made to the DB.
+// Prewrite 是两阶段提交的第一阶段。prewrite 提交包含客户端希望作为事务一部分的所有写操作（mutations）。
+// 如果没有 key 被锁定，请求成功。在这种情况下，所有这些 key 将被锁定。
+// 如果 prewrite 失败，不会对数据库进行任何更改。
 message PrewriteRequest {
     Context context = 1;
     repeated Mutation mutations = 2;
-    // Key of the primary lock.
+    // 主锁的 key。
     bytes primary_lock = 3;
     uint64 start_version = 4;
     uint64 lock_ttl = 5;
 }
 
-// Empty if the prewrite is successful.
+// 如果 prewrite 成功则为空。
 message PrewriteResponse {
     errorpb.Error region_error = 1;
     repeated KeyError errors = 2;
 }
 
-// Commit is the second phase of 2pc. The client must have successfully prewritten
-// the transaction to all nodes. If all keys are locked by the given transaction,
-// then the commit should succeed. If any keys are locked by a different
-// transaction or are not locked at all (rolled back or expired), the commit
-// fails.
+// Commit 是两阶段提交的第二阶段。客户端必须已成功将事务 prewrite 到所有节点。
+// 如果所有 key 都被给定的事务锁定，则提交应该成功。
+// 如果任何 key 被不同的事务锁定或根本没有锁定（已回滚或过期），则提交失败。
 message CommitRequest {
     Context context = 1;
-    // Identifies the transaction, must match the start_version in the transaction's
-    // prewrite request.
+    // 标识事务，必须与事务的 prewrite 请求中的 start_version 匹配。
     uint64 start_version = 2;
-    // Must match the keys mutated by the transaction's prewrite request.
+    // 必须与事务的 prewrite 请求中变更的 key 匹配。
     repeated bytes keys = 3;
-    // Must be greater than start_version.
+    // 必须大于 start_version。
     uint64 commit_version = 4;
 }
 
-// Empty if the commit is successful.
+// 如果提交成功则为空。
 message CommitResponse {
     errorpb.Error region_error = 1;
     KeyError error = 2;
 }
 
-// Read multiple values from the DB.
+// 从数据库读取多个值。
 message ScanRequest {
     Context context = 1;
     bytes start_key = 2;
-    // The maximum number of values read.
+    // 读取的最大值数量。
     uint32 limit = 3;
     uint64 version = 4;
 }
 
 message ScanResponse {
     errorpb.Error region_error = 1;
-    // Other errors are recorded for each key in pairs.
+    // 其他错误记录在 pairs 中的每个 key 上。
     repeated KvPair pairs = 2;
 }
 
-// Rollback an un-committed transaction. Will fail if the transaction has already
-// been committed or keys are locked by a different transaction. If the keys were never
-// locked, no action is needed but it is not an error.  If successful all keys will be
-// unlocked and all uncommitted values removed.
+// 回滚未提交的事务。如果事务已经提交或 key 被其他事务锁定，则会失败。
+// 如果 key 从未被锁定，则不需要任何操作，但这不是错误。
+// 如果成功，所有 key 将被解锁，所有未提交的值将被移除。
 message BatchRollbackRequest {
     Context context = 1;
     uint64 start_version = 2;
     repeated bytes keys = 3;
 }
 
-// Empty if the rollback is successful.
+// 如果回滚成功则为空。
 message BatchRollbackResponse {
     errorpb.Error region_error = 1;
     KeyError error = 2;
 }
 
-// CheckTxnStatus reports on the status of a transaction and may take action to
-// rollback expired locks.
-// If the transaction has previously been rolled back or committed, return that information.
-// If the TTL of the transaction is exhausted, abort that transaction and roll back the primary lock.
-// Otherwise, returns the TTL information.
+// CheckTxnStatus 报告事务的状态，并可能采取行动回滚过期的锁。
+// 如果事务之前已经回滚或提交，则返回该信息。
+// 如果事务的 TTL 已耗尽，则中止该事务并回滚主锁。
+// 否则，返回 TTL 信息。
 message CheckTxnStatusRequest {
     Context context = 1;
     bytes primary_key = 2;
-    uint64 lock_ts = 3;	// primary key and lock ts together to locate the primary lock of a transaction.
-    uint64 current_ts = 4; // current_ts is used to check TTL timeout, it may be inaccurate.
+    uint64 lock_ts = 3;	// primary key 和 lock ts 一起用于定位事务的主锁。
+    uint64 current_ts = 4; // current_ts 用于检查 TTL 超时，它可能不准确。
 }
 
 message CheckTxnStatusResponse {
     errorpb.Error region_error = 1;
-    // Three kinds of txn status:
-    // locked: lock_ttl > 0
-    // committed: commit_version > 0
-    // rolled back: lock_ttl == 0 && commit_version == 0
+    // 三种事务状态：
+    // 已锁定：lock_ttl > 0
+    // 已提交：commit_version > 0
+    // 已回滚：lock_ttl == 0 && commit_version == 0
     uint64 lock_ttl = 2;
     uint64 commit_version = 3;
-    // The action performed by TinyKV in response to the CheckTxnStatus request.
+    // TinyKV 响应 CheckTxnStatus 请求执行的操作。
     Action action = 4;
 }
 
-// Resolve lock will find all locks belonging to the transaction with the given start timestamp.
-// If commit_version is 0, TinyKV will rollback all locks. If commit_version is greater than
-// 0 it will commit those locks with the given commit timestamp.
-// The client will make a resolve lock request for all secondary keys once it has successfully
-// committed or rolled back the primary key.
+// ResolveLock 将查找属于具有给定开始时间戳的事务的所有锁。
+// 如果 commit_version 为 0，TinyKV 将回滚所有锁。
+// 如果 commit_version 大于 0，它将使用给定的提交时间戳提交这些锁。
+// 一旦客户端成功提交或回滚主键，它将为所有次键发出 resolve lock 请求。
 message ResolveLockRequest {
     Context context = 1;
     uint64 start_version  = 2;
     uint64 commit_version = 3;
 }
 
-// Empty if the lock is resolved successfully.
+// 如果锁成功解决则为空。
 message ResolveLockResponse {
     errorpb.Error region_error = 1;
     KeyError error = 2;
 }
 
-// Utility data types used by the above requests and responses.
+// 上述请求和响应使用的实用数据类型。
 
-// Either a key/value pair or an error for a particular key.
+// key/value 对或特定 key 的错误。
 message KvPair {
     KeyError error = 1;
     bytes key = 2;
@@ -207,7 +200,7 @@ enum Op {
     Put = 0;
     Del = 1;
     Rollback = 2;
-    // Used by TinySQL but not TinyKV.
+    // 由 TinySQL 使用，TinyKV 不使用。
     Lock = 3;
 }
 
@@ -219,22 +212,21 @@ message Mutation {
 
 enum Action {
     NoAction = 0;
-    // The lock is rolled back because it has expired.
+    // 锁因已过期而被回滚。
     TTLExpireRollback = 1;
-    // The lock does not exist, TinyKV left a record of the rollback, but did not
-    // have to delete a lock.
+    // 锁不存在，TinyKV 留下了回滚记录，但不需要删除锁。
     LockNotExistRollback = 2;
 }
 
-// Data types used for errors.
+// 用于错误的数据类型。
 
-// Many responses can include a KeyError for some problem with one of the requested key.
-// Only one field is set and it indicates what the client should do in response.
+// 许多响应可能包含一个 KeyError，表示请求的某个 key 存在问题。
+// 只设置一个字段，它指示客户端应该如何响应。
 message KeyError {
-    LockInfo locked = 1;        // Client should backoff or cleanup the lock then retry.
-    string retryable = 2;       // Client may restart the txn. e.g write conflict.
-    string abort = 3;           // Client should abort the txn.
-    WriteConflict conflict = 4; // Another transaction is trying to write a key. The client can retry.
+    LockInfo locked = 1;        // 客户端应退避或清理锁然后重试。
+    string retryable = 2;       // 客户端可以重启事务。例如写冲突。
+    string abort = 3;           // 客户端应中止事务。
+    WriteConflict conflict = 4; // 另一个事务正在尝试写入 key。客户端可以重试。
 }
 
 message LockInfo {
@@ -251,7 +243,7 @@ message WriteConflict {
     bytes primary = 4;
 }
 
-// Miscellaneous data present in each request.
+// 每个请求中存在的杂项数据。
 message Context {
     uint64 region_id = 1;
     metapb.RegionEpoch region_epoch = 2;

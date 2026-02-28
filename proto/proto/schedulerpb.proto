@@ -11,8 +11,8 @@ option (gogoproto.marshaler_all) = true;
 option (gogoproto.unmarshaler_all) = true;
 
 service Scheduler {
-    // GetMembers get the member list of this cluster. It does not require
-    // the cluster_id in request matchs the id of this cluster.
+    // GetMembers 获取此集群的成员列表。它不要求
+    // 请求中的 cluster_id 与此集群的 id 匹配。
     rpc GetMembers(GetMembersRequest) returns (GetMembersResponse) {}
 
     rpc Tso(stream TsoRequest) returns (stream TsoResponse) {}
@@ -57,12 +57,12 @@ service Scheduler {
 }
 
 message RequestHeader {
-    // cluster_id is the ID of the cluster which be sent to.
+    // cluster_id 是要发送到的集群的 ID。
     uint64 cluster_id = 1;
 }
 
 message ResponseHeader {
-    // cluster_id is the ID of the cluster which sent the response.
+    // cluster_id 是发送响应的集群的 ID。
     uint64 cluster_id = 1;
     Error error = 2;
 }
@@ -155,7 +155,7 @@ message PutStoreResponse {
 
 message GetAllStoresRequest {
     RequestHeader header = 1;
-    // Do NOT return tombstone stores if set to true.
+    // 如果设置为 true，则不返回墓碑状态的 store。
     bool exclude_tombstone_stores = 2;
 }
 
@@ -185,14 +185,14 @@ message GetRegionByIDRequest {
     uint64 region_id = 2;
 }
 
-// Use GetRegionResponse as the response of GetRegionByIDRequest.
+// 使用 GetRegionResponse 作为 GetRegionByIDRequest 的响应。
 
 message ScanRegionsRequest {
     RequestHeader header = 1;
 
     bytes start_key = 2;
-    int32 limit = 3; // no limit when limit <= 0.
-    bytes end_key = 4; // end_key is +inf when it is empty.
+    int32 limit = 3; // 当 limit <= 0 时没有限制。
+    bytes end_key = 4; // 当 end_key 为空时表示 +inf。
 }
 
 message ScanRegionsResponse {
@@ -223,9 +223,9 @@ message PutClusterConfigResponse {
 }
 
 message Member {
-    // name is the name of the Scheduler member.
+    // name 是 Scheduler 成员的名称。
     string name = 1;
-    // member_id is the unique id of the Scheduler member.
+    // member_id 是 Scheduler 成员的唯一 id。
     uint64 member_id = 2;
     repeated string peer_urls = 3;
     repeated string client_urls = 4;
@@ -248,12 +248,12 @@ message RegionHeartbeatRequest {
     RequestHeader header = 1;
 
     metapb.Region region = 2;
-    // Leader Peer sending the heartbeat.
+    // 发送心跳的 Leader Peer。
     metapb.Peer leader = 3;
-    // Pending peers are the peers that the leader can't consider as
-    // working followers.
+    // 待处理的 peer 是 leader 无法将其视为
+    // 正常工作的 follower 的 peer。
     repeated metapb.Peer pending_peers = 5;
-    // Approximate region size.
+    // Region 的大致大小。
     uint64 approximate_size = 10;
 }
 
@@ -269,27 +269,26 @@ message TransferLeader {
 message RegionHeartbeatResponse {
     ResponseHeader header = 1;
 
-    // Notice, Scheduleeer only allows handling reported epoch >= current scheduler's.
-    // Leader peer reports region status with RegionHeartbeatRequest
-    // to scheduler regularly, scheduler will determine whether this region
-    // should do ChangePeer or not.
-    // E,g, max peer number is 3, region A, first only peer 1 in A.
-    // 1. Scheduler region state -> Peers (1), ConfVer (1).
-    // 2. Leader peer 1 reports region state to scheduler, scheduler finds the
-    // peer number is < 3, so first changes its current region
-    // state -> Peers (1, 2), ConfVer (1), and returns ChangePeer Adding 2.
-    // 3. Leader does ChangePeer, then reports Peers (1, 2), ConfVer (2),
-    // scheduler updates its state -> Peers (1, 2), ConfVer (2).
-    // 4. Leader may report old Peers (1), ConfVer (1) to scheduler before ConfChange
-    // finished, scheduler stills responses ChangePeer Adding 2, of course, we must
-    // guarantee the second ChangePeer can't be applied in TiKV.
+    // 注意，Scheduler 只允许处理上报的 epoch >= 当前 scheduler 的 epoch。
+    // Leader peer 定期通过 RegionHeartbeatRequest 向 scheduler 报告 region 状态，
+    // scheduler 会决定这个 region 是否应该执行 ChangePeer。
+    // 例如，最大 peer 数量为 3，region A，最初 A 中只有 peer 1。
+    // 1. Scheduler region 状态 -> Peers (1), ConfVer (1)。
+    // 2. Leader peer 1 向 scheduler 报告 region 状态，scheduler 发现
+    // peer 数量 < 3，所以首先改变其当前 region
+    // 状态 -> Peers (1, 2), ConfVer (1)，并返回 ChangePeer 添加 2。
+    // 3. Leader 执行 ChangePeer，然后报告 Peers (1, 2), ConfVer (2)，
+    // scheduler 更新其状态 -> Peers (1, 2), ConfVer (2)。
+    // 4. Leader 可能在 ConfChange 完成之前向 scheduler 报告旧的 Peers (1), ConfVer (1)，
+    // scheduler 仍然响应 ChangePeer 添加 2，当然，我们必须
+    // 保证第二个 ChangePeer 不能在 TiKV 中被应用。
     ChangePeer change_peer = 2;
-    // Scheduler can return transfer_leader to let TiKV does leader transfer itself.
+    // Scheduler 可以返回 transfer_leader 让 TiKV 自己执行 leader 转移。
     TransferLeader transfer_leader = 3;
-    // ID of the region
+    // Region 的 ID
     uint64 region_id = 4;
     metapb.RegionEpoch region_epoch = 5;
-    // Leader of the region at the moment of the corresponding request was made.
+    // 发出对应请求时 region 的 Leader。
     metapb.Peer target_peer = 6;
 }
 
@@ -302,11 +301,11 @@ message AskSplitRequest {
 message AskSplitResponse {
     ResponseHeader header = 1;
 
-    // We split the region into two, first uses the origin
-    // parent region id, and the second uses the new_region_id.
-    // We must guarantee that the new_region_id is global unique.
+    // 我们将 region 分裂为两个，第一个使用原始的
+    // 父 region id，第二个使用 new_region_id。
+    // 我们必须保证 new_region_id 是全局唯一的。
     uint64 new_region_id = 2;
-    // The peer ids for the new split region.
+    // 新分裂 region 的 peer id 列表。
     repeated uint64 new_peer_ids = 3;
 }
 
@@ -327,9 +326,9 @@ message SplitID {
 }
 
 message TimeInterval {
-    // The unix timestamp in seconds of the start of this period.
+    // 此时间段开始的 Unix 时间戳（秒）。
     uint64 start_timestamp = 1;
-    // The unix timestamp in seconds of the end of this period.
+    // 此时间段结束的 Unix 时间戳（秒）。
     uint64 end_timestamp = 2;
 }
 
@@ -340,33 +339,33 @@ message RecordPair {
 
 message StoreStats {
     uint64 store_id = 1;
-    // Capacity for the store.
+    // Store 的容量。
     uint64 capacity = 2;
-    // Available size for the store.
+    // Store 的可用大小。
     uint64 available = 3;
-    // Total region count in this store.
+    // 此 store 中的 region 总数。
     uint32 region_count = 4;
-    // Current sending snapshot count.
+    // 当前发送快照的数量。
     uint32 sending_snap_count = 5;
-    // Current receiving snapshot count.
+    // 当前接收快照的数量。
     uint32 receiving_snap_count = 6;
-    // When the store is started (unix timestamp in seconds).
+    // Store 启动时间（Unix 时间戳，秒）。
     uint32 start_time = 7;
-    // How many region is applying snapshot.
+    // 正在应用快照的 region 数量。
     uint32 applying_snap_count = 8;
-    // If the store is busy
+    // Store 是否繁忙。
     bool is_busy = 9;
-    // Actually used space by db
+    // 数据库实际使用的空间。
     uint64 used_size = 10;
-    // Actually reported time interval
+    // 实际报告的时间间隔。
     TimeInterval interval = 15;
-    // Threads' CPU usages in the store
+    // Store 中线程的 CPU 使用率。
     repeated RecordPair cpu_usages = 16;
-    // Threads' read disk I/O rates in the store
+    // Store 中线程的磁盘读 I/O 速率。
     repeated RecordPair read_io_rates = 17;
-    // Threads' write disk I/O rates in the store
+    // Store 中线程的磁盘写 I/O 速率。
     repeated RecordPair write_io_rates = 18;
-    // Operations' latencies in the store
+    // Store 中操作的延迟。
     repeated RecordPair op_latencies = 19;
 }
 
@@ -385,8 +384,8 @@ message ScatterRegionRequest {
 
     uint64 region_id = 2;
 
-    // Scheduler will use these region information if it can't find the region.
-    // For example, the region is just split and hasn't report to Scheduler yet.
+    // 如果 Scheduler 找不到该 region，将使用这些 region 信息。
+    // 例如，region 刚刚分裂，尚未向 Scheduler 报告。
     metapb.Region region = 3;
     metapb.Peer   leader = 4;
 }
