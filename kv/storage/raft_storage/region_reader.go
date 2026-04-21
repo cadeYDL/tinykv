@@ -1,6 +1,8 @@
 package raft_storage
 
 import (
+	"errors"
+
 	"github.com/Connor1996/badger"
 	"github.com/pingcap-incubator/tinykv/kv/raftstore/util"
 	"github.com/pingcap-incubator/tinykv/kv/util/engine_util"
@@ -24,7 +26,7 @@ func (r *RegionReader) GetCF(cf string, key []byte) ([]byte, error) {
 		return nil, err
 	}
 	val, err := engine_util.GetCFFromTxn(r.txn, cf, key)
-	if err == badger.ErrKeyNotFound {
+	if errors.Is(err, badger.ErrKeyNotFound) {
 		return nil, nil
 	}
 	return val, err

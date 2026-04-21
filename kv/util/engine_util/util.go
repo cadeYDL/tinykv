@@ -2,6 +2,7 @@ package engine_util
 
 import (
 	"bytes"
+	"errors"
 
 	"github.com/Connor1996/badger"
 	"github.com/golang/protobuf/proto"
@@ -21,10 +22,15 @@ func GetCF(db *badger.DB, cf string, key []byte) (val []byte, err error) {
 
 func GetCFFromTxn(txn *badger.Txn, cf string, key []byte) (val []byte, err error) {
 	item, err := txn.Get(KeyWithCF(cf, key))
+	if errors.Is(err, badger.ErrKeyNotFound) {
+		err = nil
+	}
 	if err != nil {
 		return nil, err
 	}
-	val, err = item.ValueCopy(val)
+	if item != nil {
+		val, err = item.ValueCopy(val)
+	}
 	return
 }
 

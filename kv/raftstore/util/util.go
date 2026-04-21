@@ -16,22 +16,19 @@ import (
 const RaftInvalidIndex uint64 = 0
 const InvalidID uint64 = 0
 
-/// `is_initial_msg` checks whether the `msg` can be used to initialize a new peer or not.
-// There could be two cases:
-// 1. Target peer already exists but has not established communication with leader yet
-// 2. Target peer is added newly due to member change or region split, but it's not
-//    created yet
-// For both cases the region start key and end key are attached in RequestVote and
-// Heartbeat message for the store of that peer to check whether to create a new peer
-// when receiving these messages, or just to wait for a pending region split to perform
-// later.
+// IsInitialMsg 检查 `msg` 是否可以用于初始化一个新的 peer。
+// 有两种情况：
+// 1. 目标 peer 已经存在，但尚未与 leader 建立通信
+// 2. 目标 peer 是由于成员变更或 region 分裂而新增的，但尚未被创建
+// 对于这两种情况，RequestVote 和 Heartbeat 消息中都会附带 region 的 start key 和 end key，
+// 以便该 peer 所在的 store 在收到这些消息时判断是创建新的 peer，还是等待挂起的 region 分裂稍后执行。
 func IsInitialMsg(msg *eraftpb.Message) bool {
 	return msg.MsgType == eraftpb.MessageType_MsgRequestVote ||
-		// the peer has not been known to this leader, it may exist or not.
+		// 该 peer 对 leader 来说是未知的，可能存在也可能不存在。
 		(msg.MsgType == eraftpb.MessageType_MsgHeartbeat && msg.Commit == RaftInvalidIndex)
 }
 
-/// Check if key in region range [`start_key`, `end_key`).
+// / 检查 key 是否在 region 范围 [`start_key`, `end_key`) 内。
 func CheckKeyInRegion(key []byte, region *metapb.Region) error {
 	if bytes.Compare(key, region.StartKey) >= 0 && (len(region.EndKey) == 0 || bytes.Compare(key, region.EndKey) < 0) {
 		return nil
@@ -40,7 +37,7 @@ func CheckKeyInRegion(key []byte, region *metapb.Region) error {
 	}
 }
 
-/// Check if key in region range (`start_key`, `end_key`).
+// / 检查 key 是否在 region 范围 (`start_key`, `end_key`) 内（不含两端）。
 func CheckKeyInRegionExclusive(key []byte, region *metapb.Region) error {
 	if bytes.Compare(region.StartKey, key) < 0 && (len(region.EndKey) == 0 || bytes.Compare(key, region.EndKey) < 0) {
 		return nil
@@ -49,7 +46,7 @@ func CheckKeyInRegionExclusive(key []byte, region *metapb.Region) error {
 	}
 }
 
-/// Check if key in region range [`start_key`, `end_key`].
+// / 检查 key 是否在 region 范围 [`start_key`, `end_key`] 内（含两端）。
 func CheckKeyInRegionInclusive(key []byte, region *metapb.Region) error {
 	if bytes.Compare(key, region.StartKey) >= 0 && (len(region.EndKey) == 0 || bytes.Compare(key, region.EndKey) <= 0) {
 		return nil
@@ -58,7 +55,7 @@ func CheckKeyInRegionInclusive(key []byte, region *metapb.Region) error {
 	}
 }
 
-/// check whether epoch is staler than check_epoch.
+// / 检查 epoch 是否比 checkEpoch 更旧。
 func IsEpochStale(epoch *metapb.RegionEpoch, checkEpoch *metapb.RegionEpoch) bool {
 	return epoch.Version < checkEpoch.Version || epoch.ConfVer < checkEpoch.ConfVer
 }
@@ -68,10 +65,9 @@ func IsVoteMessage(msg *eraftpb.Message) bool {
 	return tp == eraftpb.MessageType_MsgRequestVote
 }
 
-/// `is_first_vote_msg` checks `msg` is the first vote message or not. It's used for
-/// when the message is received but there is no such region in `Store::region_peers` and the
-/// region overlaps with others. In this case we should put `msg` into `pending_votes` instead of
-/// create the peer.
+// IsFirstVoteMessage 检查 `msg` 是否是第一条投票消息。
+// 当收到消息但 `Store::region_peers` 中不存在对应的 region，且该 region 与其他 region 有重叠时使用。
+// 在这种情况下，应该将 `msg` 放入 `pending_votes` 中，而不是创建新的 peer。
 func IsFirstVoteMessage(msg *eraftpb.Message) bool {
 	return IsVoteMessage(msg) && msg.Term == meta.RaftInitLogTerm+1
 }
@@ -106,15 +102,14 @@ func CheckRegionEpoch(req *raft_cmdpb.RaftCmdRequest, region *metapb.Region, inc
 	fromEpoch := req.Header.RegionEpoch
 	currentEpoch := region.RegionEpoch
 
-	// We must check epochs strictly to avoid key not in region error.
+	// 我们必须严格检查 epoch 以避免 key not in region 错误。
 	//
-	// A 3 nodes TiKV cluster with merge enabled, after commit merge, TiKV A
-	// tells TiDB with an epoch not match error contains the latest target Region
-	// info, TiDB updates its region cache and sends requests to TiKV B,
-	// and TiKV B has not applied commit merge yet, since the region epoch in
-	// request is higher than TiKV B, the request must be denied due to epoch
-	// not match, so it does not read on a stale snapshot, thus avoid the
-	// KeyNotInRegion error.
+	// 一个启用了 merge 的 3 节点 TiKV 集群，在提交 merge 后，TiKV A
+	// 向 TiDB 返回一个 epoch not match 错误，其中包含最新的目标 Region 信息，
+	// TiDB 更新其 region 缓存并向 TiKV B 发送请求，
+	// 而 TiKV B 尚未应用 commit merge。由于请求中的 region epoch
+	// 高于 TiKV B 的 epoch，该请求必须因 epoch 不匹配而被拒绝，
+	// 这样就不会在过期的快照上读取数据，从而避免 KeyNotInRegion 错误。
 	if (checkConfVer && fromEpoch.ConfVer != currentEpoch.ConfVer) ||
 		(checkVer && fromEpoch.Version != currentEpoch.Version) {
 		log.Debugf("epoch not match, region id %v, from epoch %v, current epoch %v",
@@ -170,8 +165,8 @@ func CheckTerm(req *raft_cmdpb.RaftCmdRequest, term uint64) error {
 	if header.Term == 0 || term <= header.Term+1 {
 		return nil
 	}
-	// If header's term is 2 verions behind current term,
-	// leadership may have been changed away.
+	// 如果 header 的 term 比当前 term 落后 2 个版本，
+	// 说明 leadership 可能已经发生了变更。
 	return &ErrStaleCommand{}
 }
 

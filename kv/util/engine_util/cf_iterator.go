@@ -9,7 +9,7 @@ type CFItem struct {
 	prefixLen int
 }
 
-// String returns a string representation of Item
+// String 返回 Item 的字符串表示
 func (i *CFItem) String() string {
 	return i.item.String()
 }
@@ -96,34 +96,31 @@ func (it *BadgerIterator) Rewind() {
 }
 
 type DBIterator interface {
-	// Item returns pointer to the current key-value pair.
+	// Item 返回指向当前键值对的指针。
 	Item() DBItem
-	// Valid returns false when iteration is done.
+	// Valid 在迭代结束时返回 false。
 	Valid() bool
-	// Next would advance the iterator by one. Always check it.Valid() after a Next()
-	// to ensure you have access to a valid it.Item().
+	// Next 将迭代器向前推进一步。每次调用 Next() 后务必检查 it.Valid()，
+	// 以确保可以访问有效的 it.Item()。
 	Next()
-	// Seek would seek to the provided key if present. If absent, it would seek to the next smallest key
-	// greater than provided.
+	// Seek 定位到指定的 key。如果该 key 不存在，则定位到大于该 key 的最小 key。
 	Seek([]byte)
 
-	// Close the iterator
+	// Close 关闭迭代器。
 	Close()
 }
 
 type DBItem interface {
-	// Key returns the key.
+	// Key 返回键。
 	Key() []byte
-	// KeyCopy returns a copy of the key of the item, writing it to dst slice.
-	// If nil is passed, or capacity of dst isn't sufficient, a new slice would be allocated and
-	// returned.
+	// KeyCopy 返回 item 的键的副本，写入到 dst 切片中。
+	// 如果传入 nil，或 dst 容量不足，则会分配并返回一个新的切片。
 	KeyCopy(dst []byte) []byte
-	// Value retrieves the value of the item.
+	// Value 获取 item 的值。
 	Value() ([]byte, error)
-	// ValueSize returns the size of the value.
+	// ValueSize 返回值的大小。
 	ValueSize() int
-	// ValueCopy returns a copy of the value of the item from the value log, writing it to dst slice.
-	// If nil is passed, or capacity of dst isn't sufficient, a new slice would be allocated and
-	// returned.
+	// ValueCopy 从 value log 中返回 item 值的副本，写入到 dst 切片中。
+	// 如果传入 nil，或 dst 容量不足，则会分配并返回一个新的切片。
 	ValueCopy(dst []byte) ([]byte, error)
 }
